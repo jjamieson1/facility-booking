@@ -316,6 +316,27 @@ These are called out in `requirements.md` and are the ones easy to get wrong:
   response; HSTS is added only when `FB_ENV=prod`. (The SPA's own headers are an Apache/deploy
   concern — see `skills/Security.md` §7.)
 
+## Git workflow: a branch and a PR per ticket
+
+From FAC-41 onward each ticket gets its own branch, commit and pull request — never commit straight
+to `main`:
+
+```bash
+git checkout main && git pull
+git checkout -b feat/FAC-NN-short-slug     # or fix/, chore/
+# ... work, with the suite green ...
+git commit                                  # subject starts "FAC-NN: "
+git push -u origin feat/FAC-NN-short-slug
+gh pr create                                # link the ticket; say what changed and why
+```
+
+`deployment/deploy.sh` refuses to deploy unless HEAD is exactly `origin/main` **and the tree is
+clean**, so unmerged work cannot reach production — the PR is the path, not a formality.
+
+PR bodies should carry what a reviewer cannot get from the diff: the failure the change prevents,
+anything deliberately left out, and which claims were tested versus reasoned about. Ticket comments
+in celestial-ticket remain the fuller record.
+
 ## Working conventions (skills/)
 
 The `skills/` files define the personas and standards for this project — read them before
