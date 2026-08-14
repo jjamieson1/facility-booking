@@ -1,0 +1,328 @@
+// Package facility manages the facility directory: reads for the public site,
+// writes for staff, filtered search, and per-day availability slots.
+package facility
+
+import (
+	"context"
+	"errors"
+	"time"
+
+	"gorm.io/gorm"
+
+	"github.com/jjamieson1/facility-booking/internal/availability"
+	"github.com/jjamieson1/facility-booking/internal/domain"
+)
+
+// ErrNotFound is returned when a facility id doesn't resolve.
+var ErrNotFound = errors.New("facility: not found")
+
+// Service reads and writes facilities.
+type Service struct{ db *gorm.DB }
+
+// NewService constructs the facility service.
+func NewService(db *gorm.DB) *Service { return &Service{db: db} }
+
+// Filter narrows a directory query. Zero values mean "no constraint".
+type Filter struct {
+	MinCapacity int
+	FreeOnly    bool
+	Accessory   string // accessory name that must be present
+}
+
+// List returns facilities matching the filter, with accessories preloaded.
+func (s *Service) List(ctx context.Context, f Filter) ([]domain.Facility, error) {
+	q := s.db.WithContext(ctx).Preload("Accessories.Accessory").Model(&domain.Facility{})
+	if f.MinCapacity > 0 {
+		q = q.Where("capacity >= ?", f.MinCapacity)
+	}
+	if f.FreeOnly {
+		q = q.Where("fee_cents = 0")
+	}
+	if f.Accessory != "" {
+		q = q.Where(`id IN (SELECT fa.facility_id FROM facility_accessories fa
+			JOIN accessories a ON a.id = fa.accessory_id WHERE a.name = ?)`, f.Accessory)
+	}
+	var out []domain.Facility
+	err := q.Order("name asc").Find(&out).Error
+	return out, err
+}
+
+// Get loads one facility.
+func (s *Service) Get(ctx context.Context, id string) (*domain.Facility, error) {
+	var f domain.Facility
+	if err := s.db.WithContext(ctx).Preload("Accessories.Accessory").First(&f, "id = ?", id).Error; err != nil {
+		return nil, ErrNotFound
+	}
+	return &f, nil
+}
+
+// Create inserts a new facility (staff).
+func (s *Service) Create(ctx context.Context, f *domain.Facility) error {
+	return s.db.WithContext(ctx).Create(f).Error
+}
+
+// Update saves editable fields on a facility (staff).
+func (s *Service) Update(ctx context.Context, id string, in *domain.Facility) (*domain.Facility, error) {
+	f, err := s.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	in.ID = f.ID
+	if err := s.db.WithContext(ctx).Model(f).Omit("Accessories").Save(in).Error; err != nil {
+		return nil, err
+	}
+	return s.Get(ctx, id)
+}
+
+// Delete soft-deletes a facility (staff).
+func (s *Service) Delete(ctx context.Context, id string) error {
+	return s.db.WithContext(ctx).Delete(&domain.Facility{}, "id = ?", id).Error
+}
+
+// --- blackouts (maintenance / closures) ------------------------------------
+
+// ErrBadRange is returned when a blackout's end is not after its start.
+var ErrBadRange = errors.New("facility: end must be after start")
+
+// AddBlackout marks a facility unavailable for [start, end) (staff). Once saved,
+// availability and booking both exclude the range via availability.Check.
+func (s *Service) AddBlackout(ctx context.Context, facilityID string, start, end time.Time, reason string) (*domain.Blackout, error) {
+	if _, err := s.Get(ctx, facilityID); err != nil {
+		return nil, err
+	}
+	if !end.After(start) {
+		return nil, ErrBadRange
+	}
+	b := domain.Blackout{FacilityID: facilityID, StartsAt: start, EndsAt: end, Reason: reason}
+	if err := s.db.WithContext(ctx).Create(&b).Error; err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+// ListBlackouts returns a facility's blackout ranges, soonest first.
+func (s *Service) ListBlackouts(ctx context.Context, facilityID string) ([]domain.Blackout, error) {
+	var out []domain.Blackout
+	err := s.db.WithContext(ctx).Where("facility_id = ?", facilityID).Order("starts_at asc").Find(&out).Error
+	return out, err
+}
+
+// RemoveBlackout deletes a blackout by id (staff).
+func (s *Service) RemoveBlackout(ctx context.Context, id string) error {
+	return s.db.WithContext(ctx).Delete(&domain.Blackout{}, "id = ?", id).Error
+}
+
+// Slot is a candidate booking window on a given day and whether it is free.
+type Slot struct {
+	Start     time.Time `json:"start"`
+	End       time.Time `json:"end"`
+	Available bool      `json:"available"`
+}
+
+// Search returns facilities matching the filter that are also free for the whole
+// [from, to] window. With a zero window it degrades to List (parameter search
+// only). The capacity/accessory filter and the availability check are ANDed, per
+// the §4.4 acceptance criteria.
+func (s *Service) Search(ctx context.Context, f Filter, from, to time.Time) ([]domain.Facility, error) {
+	facilities, err := s.List(ctx, f)
+	if err != nil || from.IsZero() || to.IsZero() {
+		return facilities, err
+	}
+	var out []domain.Facility
+	for _, fac := range facilities {
+		free, err := s.windowFree(ctx, fac, from, to)
+		if err != nil {
+			return nil, err
+		}
+		if free {
+			out = append(out, fac)
+		}
+	}
+	return out, nil
+}
+
+// windowFree reports whether a facility is bookable for exactly [from, to].
+func (s *Service) windowFree(ctx context.Context, f domain.Facility, from, to time.Time) (bool, error) {
+	rules, blackouts, bookings, err := s.loadWindow(ctx, f.ID, from, to)
+	if err != nil {
+		return false, err
+	}
+	reason := availability.Check(availability.Input{
+		Facility: f, Rules: rules, Blackouts: blackouts, Bookings: bookings, Start: from, End: to,
+	})
+	return reason == availability.OK, nil
+}
+
+// DayAvailability returns hourly slots for a facility on the given date,
+// each marked available or not per the booking rules and existing bookings.
+func (s *Service) DayAvailability(ctx context.Context, id string, day time.Time) ([]Slot, error) {
+	f, err := s.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	dayStart := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, day.Location())
+	dayEnd := dayStart.Add(24 * time.Hour)
+	rules, blackouts, bookings, err := s.loadWindow(ctx, id, dayStart, dayEnd)
+	if err != nil {
+		return nil, err
+	}
+	return buildSlots(*f, rules, blackouts, bookings, dayStart), nil
+}
+
+// loadWindow fetches a facility's rules, plus the blackouts and active bookings
+// that could affect [from, to]. Bookings are scanned a day wider so buffer
+// padding around the window is always covered; availability.Check does the exact
+// buffer math.
+func (s *Service) loadWindow(ctx context.Context, id string, from, to time.Time) ([]domain.AvailabilityRule, []domain.Blackout, []domain.Booking, error) {
+	var rules []domain.AvailabilityRule
+	if err := s.db.WithContext(ctx).Where("facility_id = ?", id).Find(&rules).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	var blackouts []domain.Blackout
+	if err := s.db.WithContext(ctx).Where("facility_id = ? AND starts_at < ? AND ends_at > ?", id, to, from).Find(&blackouts).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	// Bookings come from the whole conflict set — the space itself plus its
+	// ancestors and descendants — so what the calendar shows as taken matches
+	// what the booking path will refuse. Showing a sub-space as open because only
+	// its parent hall is booked would offer a slot that then fails on submit.
+	conflicting, err := ConflictSet(s.db.WithContext(ctx), id)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	var bookings []domain.Booking
+	if err := s.db.WithContext(ctx).Where("facility_id IN ? AND status IN ? AND ends_at > ? AND starts_at < ?",
+		conflicting, []domain.BookingStatus{domain.StatusPending, domain.StatusConfirmed}, from.Add(-24*time.Hour), to.Add(24*time.Hour)).Find(&bookings).Error; err != nil {
+		return nil, nil, nil, err
+	}
+	return rules, blackouts, bookings, nil
+}
+
+// --- weekly availability calendar (§4.2) -----------------------------------
+
+// CalendarSlot is one time block with its booking status.
+type CalendarSlot struct {
+	Start  time.Time `json:"start"`
+	Status string    `json:"status"` // open | booked | blackout | closed
+}
+
+// CalendarDay is one column of the calendar grid.
+type CalendarDay struct {
+	Date    string         `json:"date"`  // YYYY-MM-DD
+	Label   string         `json:"label"` // e.g. "Mon 21"
+	IsToday bool           `json:"isToday"`
+	Slots   []CalendarSlot `json:"slots"`
+}
+
+// Calendar is a rectangular availability grid: one CalendarDay per day, each with
+// the same time-aligned slots, so the UI renders rows (times) × columns (days).
+type Calendar struct {
+	FacilityID    string        `json:"facilityId"`
+	FacilityName  string        `json:"facilityName"`
+	From          string        `json:"from"`
+	SlotMinutes   int           `json:"slotMinutes"`
+	OpenMinute    int           `json:"openMinute"`
+	CloseMinute   int           `json:"closeMinute"`
+	MinMinutes    int           `json:"minMinutes"`
+	BufferMinutes int           `json:"bufferMinutes"`
+	Days          []CalendarDay `json:"days"`
+}
+
+const calendarSlotMinutes = 120
+
+// Calendar builds a `days`-long availability grid for a facility starting at
+// `from`. Each slot is open, booked (an active booking overlaps), blackout, or
+// closed (outside opening hours). Public — no auth needed.
+func (s *Service) Calendar(ctx context.Context, id string, from time.Time, days int) (*Calendar, error) {
+	f, err := s.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if days < 1 {
+		days = 7
+	}
+	if days > 42 {
+		days = 42
+	}
+	from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, from.Location())
+	to := from.AddDate(0, 0, days)
+
+	rules, blackouts, bookings, err := s.loadWindow(ctx, id, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	// The grid spans the widest opening window across the week's weekday rules.
+	byWeekday := map[int]domain.AvailabilityRule{}
+	openMin, closeMin := 24*60, 0
+	for _, r := range rules {
+		byWeekday[r.Weekday] = r
+		if r.OpenMinute < openMin {
+			openMin = r.OpenMinute
+		}
+		if r.CloseMinute > closeMin {
+			closeMin = r.CloseMinute
+		}
+	}
+	if closeMin <= openMin { // no rules loaded → sensible default
+		openMin, closeMin = 8*60, 22*60
+	}
+
+	now := time.Now()
+	today := now.Format("2006-01-02")
+	cal := &Calendar{
+		FacilityID: f.ID, FacilityName: f.Name, From: from.Format("2006-01-02"),
+		SlotMinutes: calendarSlotMinutes, OpenMinute: openMin, CloseMinute: closeMin,
+		MinMinutes: f.MinMinutes, BufferMinutes: f.BufferMinutes,
+	}
+	for i := 0; i < days; i++ {
+		day := from.AddDate(0, 0, i)
+		rule, open := byWeekday[int(day.Weekday())]
+		cd := CalendarDay{Date: day.Format("2006-01-02"), Label: day.Format("Mon 2"), IsToday: day.Format("2006-01-02") == today}
+		for m := openMin; m+calendarSlotMinutes <= closeMin; m += calendarSlotMinutes {
+			slotStart := day.Add(time.Duration(m) * time.Minute)
+			slotEnd := slotStart.Add(calendarSlotMinutes * time.Minute)
+			cd.Slots = append(cd.Slots, CalendarSlot{Start: slotStart, Status: slotStatus(open, rule, m, slotStart, slotEnd, blackouts, bookings)})
+		}
+		cal.Days = append(cal.Days, cd)
+	}
+	return cal, nil
+}
+
+func slotStatus(dayOpen bool, rule domain.AvailabilityRule, minute int, start, end time.Time, blackouts []domain.Blackout, bookings []domain.Booking) string {
+	if !dayOpen || minute < rule.OpenMinute || minute+calendarSlotMinutes > rule.CloseMinute {
+		return "closed"
+	}
+	for _, b := range blackouts {
+		if start.Before(b.EndsAt) && b.StartsAt.Before(end) {
+			return "blackout"
+		}
+	}
+	for _, bk := range bookings {
+		if bk.Active() && start.Before(bk.EndsAt) && bk.StartsAt.Before(end) {
+			return "booked"
+		}
+	}
+	return "open"
+}
+
+// buildSlots walks the day's opening hours in one-hour steps, checking each.
+func buildSlots(f domain.Facility, rules []domain.AvailabilityRule, blackouts []domain.Blackout, bookings []domain.Booking, dayStart time.Time) []Slot {
+	weekday := int(dayStart.Weekday())
+	var open, close int
+	for _, r := range rules {
+		if r.Weekday == weekday {
+			open, close = r.OpenMinute, r.CloseMinute
+		}
+	}
+	var slots []Slot
+	for m := open; m+60 <= close; m += 60 {
+		start := dayStart.Add(time.Duration(m) * time.Minute)
+		end := start.Add(time.Hour)
+		reason := availability.Check(availability.Input{
+			Facility: f, Rules: rules, Blackouts: blackouts, Bookings: bookings, Start: start, End: end,
+		})
+		slots = append(slots, Slot{Start: start, End: end, Available: reason == availability.OK})
+	}
+	return slots
+}

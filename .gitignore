@@ -1,0 +1,21 @@
+# Go
+/dist/
+*.db
+facility-booking-api
+
+# Dev orchestrator (scripts/dev.sh): pids, logs, built binary, dev sqlite
+/.dev/
+
+# Node / Vite
+web/node_modules/
+web/dist/
+web/.vite/
+web/tsconfig.tsbuildinfo
+
+# Local Claude Code settings (per-machine permissions, not shared)
+.claude/settings.local.json
+
+# Env / secrets
+.env
+.env.*
+/data/

@@ -3,7 +3,7 @@
 A municipal facility-booking web app (sales demo). Residents browse and book
 public spaces; staff approve requests and manage facilities. React + TypeScript
 SPA over a Go (chi + GORM) REST API, persisting to **MariaDB/MySQL** — with a
-**zero-config SQLite fallback** so the demo boots on any laptop.
+**MariaDB** for storage.
 
 Identity is delegated to the **C2** identity platform over OIDC (added in
 Phase 2); no passwords are stored here.
@@ -13,7 +13,7 @@ Phase 2); no passwords are stored here.
 
 ## Run it locally
 
-Zero database setup — it defaults to a local SQLite file and seeds demo data.
+Requires a MariaDB database — create it with `scripts/db-setup.sql`, set `FB_DB_DSN`, and the app seeds demo data on first boot.
 `.env` (gitignored) carries the C2 OIDC creds and the ports. Manage the whole
 dev environment with one script (PIDs/logs/db under `.dev/`):
 
@@ -79,8 +79,7 @@ curl localhost:8080/api/facilities
 | `FB_ADDR` | `:8080` | API listen address |
 | `FB_BASE_PATH` | `""` | URL prefix (prod: `/facility-booking`) |
 | `FB_APP_ORIGIN` | `http://localhost:5173` | SPA origin for CORS |
-| `FB_DB_DRIVER` | `sqlite` | or `mysql` (MariaDB) |
-| `FB_DB_DSN` | sqlite file | driver-specific DSN |
+| `FB_DB_DSN` | *(none — required)* | MariaDB DSN; the app refuses to start without it |
 | `FB_SEED` | `true` | seed demo data when DB is empty |
 
 ## Layout
@@ -89,7 +88,7 @@ curl localhost:8080/api/facilities
 cmd/server/         API entrypoint (config → DB → seed → HTTP)
 internal/
   config/           env-driven configuration
-  db/               GORM open + AutoMigrate (sqlite | mysql)
+  db/               GORM open + AutoMigrate (MariaDB)
   domain/           GORM models (embed Base; AllModels())
   seed/             Rivermont demo data (idempotent)
   httpapi/          chi router, JSON helpers, handlers
