@@ -84,6 +84,7 @@ export function FacilityDetail() {
               <p className="text-sm text-slate-600">{f.afterInstructions}</p>
             </Card>
           </div>
+          <CancellationTerms facilityId={f.id} />
         </div>
 
         <BookingWidget facilityId={f.id} minMinutes={60} requiresWaiver={f.requiresWaiver} />
@@ -304,4 +305,56 @@ function Row({ label, value }: { label: string; value: string }) {
       <dd className="text-right">{value}</dd>
     </div>
   );
+}
+
+// CancellationTerms shows what happens if the resident cancels — on the page
+// where they decide to book, not after. §4.7 requires the fee and its conditions
+// to be visible before committing, and "you can get half back up to 48 hours
+// out" is part of the price.
+function CancellationTerms({ facilityId }: { facilityId: string }) {
+  const { t } = useTranslation();
+  const { data: policy } = useQuery({
+    queryKey: ["cancellationPolicy", facilityId],
+    queryFn: () => api.cancellationPolicy(facilityId),
+  });
+  if (!policy) return null;
+
+  // Most generous first, which is the order someone reads them in.
+  const tiers = [...(policy.tiers ?? [])].sort((a, b) => b.hoursBefore - a.hoursBefore);
+
+  return (
+    <Card className="p-5">
+      <h3 className="mb-2 font-semibold">{t("facility.cancellationTerms")}</h3>
+      {tiers.length === 0 ? (
+        <p className="text-sm text-slate-600">{t("facility.noRefundTiers")}</p>
+      ) : (
+        <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+          {tiers.map((tier) => (
+            <li key={tier.hoursBefore}>
+              {t("facility.refundTier", { hours: describeHours(tier.hoursBefore), percent: tier.refundPercent })}
+            </li>
+          ))}
+        </ul>
+      )}
+      {policy.nonRefundableCents > 0 && (
+        <p className="mt-2 text-sm text-slate-500">
+          {t("facility.nonRefundable", { amount: formatFee(policy.nonRefundableCents) })}
+        </p>
+      )}
+      {policy.modificationCutoffHours > 0 && (
+        <p className="mt-2 text-sm text-slate-500">
+          {t("facility.changeCutoff", { hours: policy.modificationCutoffHours })}
+        </p>
+      )}
+    </Card>
+  );
+}
+
+// describeHours renders an hour count the way the terms would be spoken.
+function describeHours(hours: number): string {
+  if (hours % 24 === 0 && hours >= 24) {
+    const days = hours / 24;
+    return days === 1 ? "1 day" : `${days} days`;
+  }
+  return hours === 1 ? "1 hour" : `${hours} hours`;
 }

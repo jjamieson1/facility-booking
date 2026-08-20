@@ -18,6 +18,37 @@ import (
 // lighter demo.
 const historyBookings = 600
 
+// seedCancellationPolicy writes the municipality-wide default (§4.7). Seeded
+// rather than left to policy.DefaultPolicy() so staff can see and edit the terms
+// in the back-office instead of discovering them in code — a policy nobody can
+// find is a policy nobody can change.
+func seedCancellationPolicy(tx *gorm.DB) error {
+	var existing int64
+	if err := tx.Model(&domain.CancellationPolicy{}).Where("facility_id IS NULL").Count(&existing).Error; err != nil {
+		return err
+	}
+	if existing > 0 {
+		return nil // idempotent, like the rest of the seed
+	}
+	p := domain.CancellationPolicy{
+		Name:                    "Municipal default",
+		ModificationCutoffHours: 24,
+	}
+	if err := tx.Create(&p).Error; err != nil {
+		return err
+	}
+	for _, t := range []domain.RefundTier{
+		{HoursBefore: 168, RefundPercent: 100}, // a week or more: full refund
+		{HoursBefore: 48, RefundPercent: 50},   // two days to a week: half
+	} {
+		t.PolicyID = p.ID
+		if err := tx.Create(&t).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // MunicipalRoll is Rivermont's address roll — the streets inside the municipal
 // boundary. The residency entitlement provider checks a submitted address
 // against this; anything else is a non-resident, so residency is decided here
@@ -41,7 +72,17 @@ func MunicipalRoll() []string {
 }
 
 // Run seeds demo data when the facilities table is empty.
+//
+// The cancellation policy is seeded separately, on every boot, because it is not
+// demo data: it is configuration the municipality is expected to edit. Gating it
+// behind "no facilities yet" would mean an existing deployment silently ran on
+// the built-in fallback, which staff cannot see or change in the back-office.
+// Both steps are idempotent.
 func Run(db *gorm.DB) error {
+	if err := db.Transaction(seedCancellationPolicy); err != nil {
+		return err
+	}
+
 	var count int64
 	if err := db.Model(&domain.Facility{}).Count(&count).Error; err != nil {
 		return err

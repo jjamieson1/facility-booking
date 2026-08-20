@@ -291,6 +291,18 @@ These are called out in `requirements.md` and are the ones easy to get wrong:
      latest committed row. Removing this clause makes every concurrent request win.
 
   `TestConcurrentHierarchyRequests` covers both.
+- **Cancellation and refunds follow a policy, and the quote is the charge.** `internal/policy`
+  resolves a facility's own `CancellationPolicy`, else the municipality-wide default (`facility_id
+  IS NULL`), else `policy.DefaultPolicy()` — a missing policy must never block a cancellation.
+  Refund tiers are evaluated most-generous-first, percentages round **half up** (favouring the
+  resident), a non-refundable charge comes off after the percentage, and the result is floored at 0
+  and capped at the amount **paid** — not the fee, so an unpaid or free booking refunds nothing. The
+  cancel path quotes **before** cancelling and issues **after** the transaction commits: quoting
+  afterwards would price a booking that no longer exists, and calling the gateway inside the
+  transaction would hold booking row locks for the provider's latency. A failed refund does not
+  un-cancel the booking — it is audited as `booking.refund.failed` for staff, because the slot is
+  already free. A **partial** refund leaves `Payment.Status` as `paid`: money is still held against
+  that booking, and marking it refunded would misreport revenue.
 - **Availability must reflect booking rules** — opening hours, min/max duration, blackout/
   maintenance dates, and per-facility buffer time between bookings.
 - **Approval workflow**: facilities are either auto-confirm or require staff approval; bookings

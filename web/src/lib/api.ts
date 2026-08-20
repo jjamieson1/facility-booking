@@ -313,6 +313,34 @@ export interface ProveResult {
   entitlements: EntitlementSet;
 }
 
+// --- cancellation policy (§4.7, §4.9) --------------------------------------
+
+export interface RefundTier {
+  hoursBefore: number;
+  refundPercent: number;
+}
+
+export interface CancellationPolicy {
+  id: string;
+  facilityId?: string;      // absent = the municipality-wide default
+  name: string;
+  nonRefundableCents: number;
+  modificationCutoffHours: number;
+  tiers?: RefundTier[];
+}
+
+// What cancelling right now would return. Computed by the same code the cancel
+// path uses, so the figure shown is the figure issued.
+export interface RefundQuote {
+  policyName: string;
+  paidCents: number;
+  refundCents: number;
+  refundPercent: number;
+  hoursUntilStart: number;
+  appliedTierHours: number;
+  explanation: string;
+}
+
 // --- payment modules (§4.7) ------------------------------------------------
 
 export type PaymentKind = "mock" | "stripe" | "moneris";
@@ -429,7 +457,11 @@ export const api = {
   createRecurring: (b: { facilityId: string; start: string; end: string; purpose: string; attendance: number; repeatWeeks: number }) =>
     post<RecurringResult>("/bookings", b),
   myBookings: () => get<Booking[]>("/bookings/mine"),
-  cancelBooking: (id: string) => post<Booking>(`/bookings/${id}/cancel`),
+  // The cancellation returns the booking plus what it refunded.
+  cancelBooking: (id: string) => post<Booking & { refund?: RefundQuote }>(`/bookings/${id}/cancel`),
+  refundQuote: (id: string) => get<RefundQuote>(`/bookings/${id}/refund-quote`),
+  cancellationPolicy: (facilityId: string) =>
+    get<CancellationPolicy>(`/facilities/${facilityId}/cancellation-policy`),
   reschedule: (id: string, w: { start: string; end: string }) => post<Booking>(`/bookings/${id}/reschedule`, w),
   pay: (id: string, card: string) => post<Payment>(`/bookings/${id}/pay`, { card }),
   inviteUrl: (id: string) => `${BASE}/api/bookings/${id}/invite.ics`,

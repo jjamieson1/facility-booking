@@ -137,6 +137,6 @@ func (p pendingProvider) Name() string { return string(p.kind) }
 func (p pendingProvider) Charge(context.Context, int, string) (Charge, error) {
 	return Charge{}, ErrNotConnected
 }
-func (p pendingProvider) Refund(context.Context, string) (string, error) {
+func (p pendingProvider) Refund(context.Context, string, int) (string, error) {
 	return "", ErrNotConnected
 }

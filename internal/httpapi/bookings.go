@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/facility"
 	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
+	"github.com/jjamieson1/facility-booking/internal/policy"
 	"github.com/jjamieson1/facility-booking/internal/waitlist"
 	"github.com/jjamieson1/facility-booking/internal/waiver"
 )
@@ -27,6 +29,7 @@ type bookingHandler struct {
 	waitlist     *waitlist.Service
 	waiver       *waiver.Service
 	entitlements *entitlement.Service
+	policies     *policy.Service
 	notifier     notify.Notifier
 	audit        auditlog.Recorder
 }
@@ -131,19 +134,74 @@ func (h bookingHandler) get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, b)
 }
 
+// cancelResponse carries the booking plus what the cancellation refunded, so the
+// SPA can tell the resident the outcome rather than leaving them to check a
+// statement.
+type cancelResponse struct {
+	*domain.Booking
+	Refund *domain.Quote `json:"refund,omitempty"`
+}
+
 func (h bookingHandler) cancel(w http.ResponseWriter, r *http.Request) {
 	user := auth.FromContext(r.Context())
-	b, err := h.bookings.Cancel(r.Context(), user, chi.URLParam(r, "id"))
+	id := chi.URLParam(r, "id")
+
+	// Quote BEFORE cancelling: the refund depends on how far ahead of the start
+	// we are, and cancelling first would compute it against a booking that is
+	// already gone. Reading it here also keeps the figure the resident was shown
+	// and the figure issued the same computation.
+	quote, quoted := h.quoteRefund(r, id)
+
+	b, err := h.bookings.Cancel(r.Context(), user, id)
 	if err != nil {
 		bookingError(w, err)
 		return
 	}
+
+	// Issue the refund AFTER the cancellation transaction has committed. A
+	// gateway call inside it would hold the booking row locks for the provider's
+	// latency — the same rule the entitlement resolution follows.
+	var refund *domain.Quote
+	if quoted && quote.RefundCents > 0 {
+		if _, err := h.payments.RefundAmount(r.Context(), b.ID, quote.RefundCents, quote.Explanation); err != nil {
+			// The booking is cancelled and the slot is free; a failed refund must
+			// not undo that or the resident is left holding a booking they asked
+			// to drop. Surface it for staff instead.
+			h.recordAudit(r, "booking.refund.failed", b.ID,
+				fmt.Sprintf("Automatic refund of %d cents failed: %v", quote.RefundCents, err))
+		} else {
+			h.recordAudit(r, "booking.refund", b.ID, quote.Explanation)
+		}
+	}
+	if quoted {
+		q := quote
+		refund = &q
+	}
+
 	h.notifier.BookingCancelled(*b, h.inviteFor(r, b.ID))
 	h.notifyWaitlist(r, *b) // a freed slot may open the waitlist (§4.11)
 	if auth.IsStaff(user) && b.UserID != user.ID {
 		h.recordAudit(r, "booking.cancel", b.ID, "Staff cancelled a booking")
 	}
-	writeJSON(w, http.StatusOK, b)
+	writeJSON(w, http.StatusOK, cancelResponse{Booking: b, Refund: refund})
+}
+
+// quoteRefund works out what cancelling this booking now would return. A missing
+// policy service or an unreadable booking simply means no automatic refund —
+// never a failed cancellation.
+func (h bookingHandler) quoteRefund(r *http.Request, bookingID string) (domain.Quote, bool) {
+	if h.policies == nil {
+		return domain.Quote{}, false
+	}
+	b, err := h.bookings.Get(r.Context(), bookingID)
+	if err != nil {
+		return domain.Quote{}, false
+	}
+	q, err := h.policies.QuoteFor(r.Context(), *b, paidCents(b), time.Now())
+	if err != nil {
+		return domain.Quote{}, false
+	}
+	return q, true
 }
 
 // notifyWaitlist tells anyone waitlisted for the freed booking's window.
@@ -306,17 +364,43 @@ func (h bookingHandler) deny(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, b)
 }
 
+// refundReq lets staff override the policy with a partial amount. An absent or
+// zero amount means the full payment, which is what this endpoint always did.
+type refundReq struct {
+	AmountCents int    `json:"amountCents"`
+	Reason      string `json:"reason"`
+}
+
+// refund is the staff override the cancellation policy explicitly allows for
+// (§4.7): the automatic figure follows the policy, and staff can depart from it
+// when circumstances warrant — audited either way, with the reason recorded so
+// a departure from policy is explainable later.
 func (h bookingHandler) refund(w http.ResponseWriter, r *http.Request) {
 	user := auth.FromContext(r.Context())
 	id := chi.URLParam(r, "id")
-	pay, err := h.payments.Refund(r.Context(), id)
+
+	// The body is optional: an empty request is still a full refund.
+	var req refundReq
+	if r.ContentLength > 0 && !decode(w, r, &req) {
+		return
+	}
+
+	pay, err := h.payments.RefundAmount(r.Context(), id, req.AmountCents, req.Reason)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "refund failed")
 		return
 	}
+
+	detail := "Staff refunded a booking in full"
+	if req.AmountCents > 0 {
+		detail = fmt.Sprintf("Staff refunded %d cents (policy override)", req.AmountCents)
+	}
+	if req.Reason != "" {
+		detail += ": " + req.Reason
+	}
 	// Refunds weren't audited before; record both locally and centrally.
 	_ = h.bookings.Audit(r.Context(), user.ID, "booking.refund", id)
-	h.recordAudit(r, "booking.refund", id, "Staff refunded a booking")
+	h.recordAudit(r, "booking.refund", id, detail)
 	writeJSON(w, http.StatusOK, pay)
 }
 

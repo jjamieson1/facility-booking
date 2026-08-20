@@ -25,6 +25,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/media"
 	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
+	"github.com/jjamieson1/facility-booking/internal/policy"
 	"github.com/jjamieson1/facility-booking/internal/reports"
 	"github.com/jjamieson1/facility-booking/internal/testdb"
 	"github.com/jjamieson1/facility-booking/internal/users"
@@ -66,24 +67,26 @@ var routeAccess = map[string]access{
 
 	// Public directory, availability, and the city calendar feed (§4.11 —
 	// deliberately readable without an account, to reduce enquiries).
-	"GET /api/facilities":                   accessPublic,
-	"GET /api/facilities/{id}":              accessPublic,
-	"GET /api/facilities/{id}/availability": accessPublic,
-	"GET /api/facilities/{id}/calendar":     accessPublic,
-	"GET /api/calendar.ics":                 accessPublic,
-	"GET /api/waiver-template.pdf":          accessPublic,
-	"GET /api/citizens/{sub}/status":        accessPublic, // authenticated by a C2-issued JWT, not a cookie
+	"GET /api/facilities":                          accessPublic,
+	"GET /api/facilities/{id}":                     accessPublic,
+	"GET /api/facilities/{id}/availability":        accessPublic,
+	"GET /api/facilities/{id}/calendar":            accessPublic,
+	"GET /api/facilities/{id}/cancellation-policy": accessPublic,
+	"GET /api/calendar.ics":                        accessPublic,
+	"GET /api/waiver-template.pdf":                 accessPublic,
+	"GET /api/citizens/{sub}/status":               accessPublic, // authenticated by a C2-issued JWT, not a cookie
 
 	// A booker acting on their own booking. Guests included: the handler's
 	// ownership check is what protects the data.
-	"POST /api/bookings":                accessSession,
-	"GET /api/bookings/mine":            accessSession,
-	"GET /api/bookings/{id}":            accessSession,
-	"GET /api/bookings/{id}/invite.ics": accessSession,
-	"POST /api/bookings/{id}/cancel":    accessSession,
-	"POST /api/bookings/{id}/pay":       accessSession,
-	"POST /api/bookings/{id}/waiver":    accessSession,
-	"GET /api/bookings/{id}/waiver":     accessSession,
+	"POST /api/bookings":                  accessSession,
+	"GET /api/bookings/mine":              accessSession,
+	"GET /api/bookings/{id}":              accessSession,
+	"GET /api/bookings/{id}/invite.ics":   accessSession,
+	"POST /api/bookings/{id}/cancel":      accessSession,
+	"GET /api/bookings/{id}/refund-quote": accessSession,
+	"POST /api/bookings/{id}/pay":         accessSession,
+	"POST /api/bookings/{id}/waiver":      accessSession,
+	"GET /api/bookings/{id}/waiver":       accessSession,
 
 	// Tied to a durable identity rather than to one booking. Entitlements are
 	// account-bound: a guest has no durable identity to attach one to, and the
@@ -150,7 +153,7 @@ func fullTestServer(t *testing.T) (http.Handler, *auth.Service, *gorm.DB) {
 		Cfg:      cfg,
 		Auth:     authSvc,
 		Facility: facility.NewService(db),
-		Booking:  booking.NewService(db),
+		Booking:  booking.NewService(db, policy.NewService(db)),
 		Payment:  payment.NewService(db, payment.Fixed(payment.NewMockProvider())),
 		Reports:  reports.NewService(db),
 		Waitlist: waitlist.NewService(db, notifier),
@@ -160,6 +163,7 @@ func fullTestServer(t *testing.T) (http.Handler, *auth.Service, *gorm.DB) {
 		Entitlements: entitlement.NewService(db, audit,
 			entitlement.NewRollProvider([]string{"Willow Lane"}, time.Hour)),
 		PaymentSettings: payment.NewSettingsService(db, audit),
+		Policy:          policy.NewService(db),
 		Notifier:        notifier,
 		Audit:           audit,
 	}), authSvc, db

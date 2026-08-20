@@ -20,6 +20,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/media"
 	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
+	"github.com/jjamieson1/facility-booking/internal/policy"
 	"github.com/jjamieson1/facility-booking/internal/reminders"
 	"github.com/jjamieson1/facility-booking/internal/reports"
 	"github.com/jjamieson1/facility-booking/internal/seed"
@@ -71,7 +72,11 @@ func main() {
 	entitlementSvc := entitlement.NewService(gdb, auditRec,
 		entitlement.NewRollProvider(seed.MunicipalRoll(), 365*24*time.Hour))
 
-	bookingSvc := booking.NewService(gdb)
+	// Cancellation/refund terms (§4.7, §4.9): per facility with a
+	// municipality-wide default, resolved at use rather than at construction.
+	policySvc := policy.NewService(gdb)
+
+	bookingSvc := booking.NewService(gdb, policySvc)
 	waitlistSvc := waitlist.NewService(gdb, notifier)
 
 	// Background sweeper: expire waitlist entries whose slot has passed (they can
@@ -91,6 +96,7 @@ func main() {
 		Calendar:        calendar.NewService(gdb, auditRec),
 		Entitlements:    entitlementSvc,
 		PaymentSettings: paymentSettings,
+		Policy:          policySvc,
 		ServiceCard:     servicecard.NewService(gdb, bookingSvc, waitlistSvc, cfg.PublicAppURL, cfg.Contact),
 		Notifier:        notifier,
 		Audit:           auditRec,

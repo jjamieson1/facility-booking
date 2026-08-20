@@ -40,7 +40,7 @@ func seedHall(t *testing.T, db *gorm.DB) (hallID, northID, southID, userID strin
 // Booking the whole hall must block its halves: they are the same physical room.
 func TestBookingParentBlocksChild(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	hall, north, _, uid := seedHall(t, db)
 	start, end := window()
 
@@ -55,7 +55,7 @@ func TestBookingParentBlocksChild(t *testing.T) {
 // ...and the reverse: a half in use must block the whole hall.
 func TestBookingChildBlocksParent(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	hall, north, _, uid := seedHall(t, db)
 	start, end := window()
 
@@ -71,7 +71,7 @@ func TestBookingChildBlocksParent(t *testing.T) {
 // bookable — the fix must not over-block.
 func TestSiblingsRemainIndependent(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	_, north, south, uid := seedHall(t, db)
 	start, end := window()
 
@@ -88,7 +88,7 @@ func TestSiblingsRemainIndependent(t *testing.T) {
 // already held for two requests on the same space.
 func TestConcurrentParentAndChildRequests(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	hall, north, _, uid := seedHall(t, db)
 	start, end := window()
 
@@ -129,7 +129,7 @@ func TestConcurrentParentAndChildRequests(t *testing.T) {
 // deadlock each other. Both failure modes have been observed here.
 func TestConcurrentHierarchyRequests(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	hall, north, south, uid := seedHall(t, db)
 	start, end := window()
 
@@ -187,7 +187,7 @@ func TestConcurrentHierarchyRequests(t *testing.T) {
 // the same window, not the same building.
 func TestRelatedSpaceFreeAtAnotherTime(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	hall, north, _, uid := seedHall(t, db)
 	start, end := window()
 

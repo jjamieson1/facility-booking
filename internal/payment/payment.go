@@ -39,7 +39,11 @@ type Charge struct {
 type Provider interface {
 	Name() string
 	Charge(ctx context.Context, amountCents int, card string) (Charge, error)
-	Refund(ctx context.Context, ref string) (message string, err error)
+	// Refund returns amountCents to the payer. Partial refunds are required by
+	// the cancellation policy (§4.7), so the amount is explicit rather than
+	// implied — a provider that can only refund in full must reject a partial
+	// rather than quietly refunding everything.
+	Refund(ctx context.Context, ref string, amountCents int) (message string, err error)
 }
 
 // ProviderFunc resolves which provider to charge through, per request. The
@@ -112,8 +116,19 @@ func (s *Service) record(ctx context.Context, txn domain.PaymentTransaction) {
 	_ = s.db.WithContext(ctx).Create(&txn).Error
 }
 
-// Refund reverses a booking's payment (staff action).
+// Refund returns the whole payment (staff action, and the manual override the
+// cancellation policy allows for).
 func (s *Service) Refund(ctx context.Context, bookingID string) (*domain.Payment, error) {
+	return s.RefundAmount(ctx, bookingID, 0, "")
+}
+
+// RefundAmount returns amountCents of a booking's payment. amountCents <= 0 or
+// greater than the amount paid means the full amount — callers computing a
+// policy refund pass the exact figure they quoted the resident.
+//
+// reason is recorded on the ledger so a partial refund can be explained months
+// later ("50% under Municipal default") rather than looking like an error.
+func (s *Service) RefundAmount(ctx context.Context, bookingID string, amountCents int, reason string) (*domain.Payment, error) {
 	var pay domain.Payment
 	if err := s.db.WithContext(ctx).First(&pay, "booking_id = ?", bookingID).Error; err != nil {
 		return nil, ErrNotFound
@@ -128,17 +143,28 @@ func (s *Service) Refund(ctx context.Context, bookingID string) (*domain.Payment
 	if pay.Provider != "" && pay.Provider != provider.Name() {
 		return nil, fmt.Errorf("%w: paid via %q, now configured for %q", ErrProviderMismatch, pay.Provider, provider.Name())
 	}
-	msg, err := provider.Refund(ctx, pay.ProviderRef)
+	if amountCents <= 0 || amountCents > pay.AmountCents {
+		amountCents = pay.AmountCents
+	}
+	msg, err := provider.Refund(ctx, pay.ProviderRef, amountCents)
 	if err != nil {
 		return nil, err
 	}
-	pay.Status = domain.PayRefunded
-	if err := s.db.WithContext(ctx).Model(&pay).Update("status", domain.PayRefunded).Error; err != nil {
-		return nil, err
+	if reason != "" {
+		msg = reason + " — " + msg
+	}
+	// A partial refund leaves the payment paid: money is still held against this
+	// booking, and marking it refunded would misreport revenue and hide the
+	// remainder from reconciliation.
+	if amountCents == pay.AmountCents {
+		pay.Status = domain.PayRefunded
+		if err := s.db.WithContext(ctx).Model(&pay).Update("status", domain.PayRefunded).Error; err != nil {
+			return nil, err
+		}
 	}
 	s.record(ctx, domain.PaymentTransaction{
 		BookingID: pay.BookingID, PaymentID: pay.ID, Kind: domain.TxnRefund, Status: domain.TxnSucceeded,
-		AmountCents: pay.AmountCents, Provider: provider.Name(), ProviderRef: pay.ProviderRef, Message: msg,
+		AmountCents: amountCents, Provider: provider.Name(), ProviderRef: pay.ProviderRef, Message: msg,
 	})
 	return &pay, nil
 }
