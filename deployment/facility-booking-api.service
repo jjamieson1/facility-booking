@@ -1,0 +1,32 @@
+[Unit]
+Description=Facility Booking API (Rivermont Spaces)
+After=network-online.target
+Wants=network-online.target
+# If you switch FB_DB_DRIVER to mysql, add the DB to the ordering:
+#   After=network-online.target mariadb.service
+
+[Service]
+Type=simple
+WorkingDirectory=/app/facility-booking
+EnvironmentFile=/app/facility-booking/facility-booking.env
+ExecStart=/app/facility-booking/facility-booking-api
+Restart=on-failure
+RestartSec=3
+
+# Hardening (skills/Security.md §7). Uploaded waivers live under
+# /app/facility-booking/data; the rest of the filesystem is read-only to the
+# service.
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=true
+
+# Recommended: run as a dedicated non-root user. Create it and hand it the app
+# dir first, then uncomment:
+#   useradd --system --home /app/facility-booking --shell /usr/sbin/nologin facility
+#   chown -R facility:facility /app/facility-booking
+# User=facility
+# Group=facility
+
+[Install]
+WantedBy=multi-user.target
