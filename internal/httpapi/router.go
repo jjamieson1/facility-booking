@@ -150,6 +150,8 @@ func New(d Deps) http.Handler {
 			sr.Post("/staff/facilities", fac.create)
 			sr.Put("/staff/facilities/{id}", fac.update)
 			sr.Delete("/staff/facilities/{id}", fac.remove)
+			sr.Get("/staff/facilities/{id}/translations", fac.translations)
+			sr.Put("/staff/facilities/{id}/translations", fac.saveTranslation)
 			sr.Get("/staff/facilities/{id}/blackouts", fac.listBlackouts)
 			sr.Post("/staff/facilities/{id}/blackouts", fac.addBlackout)
 			sr.Delete("/staff/facilities/{id}/blackouts/{blackoutId}", fac.removeBlackout)

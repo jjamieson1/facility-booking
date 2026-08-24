@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -49,6 +50,16 @@ func (h facilityHandler) list(w http.ResponseWriter, r *http.Request) {
 	if facilities == nil {
 		facilities = []domain.Facility{} // serialize an empty result as [], not null
 	}
+	// Serve the content in the reader's language. Translations overlay per field,
+	// so a partly-translated facility shows French where it has French.
+	refs := make([]*domain.Facility, len(facilities))
+	for i := range facilities {
+		refs[i] = &facilities[i]
+	}
+	if _, err := h.svc.Translate(r.Context(), requestLanguage(r), refs...); err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load facilities")
+		return
+	}
 	writeJSON(w, http.StatusOK, facilities)
 }
 
@@ -73,13 +84,28 @@ func parseWindow(date, start, end string) (from, to time.Time, ok bool, err erro
 	return from, to, true, nil
 }
 
+// facilityResponse is a facility plus which of its fields the reader is seeing
+// in the default language because this one has no translation. The SPA marks
+// those rather than passing English off as French (§4.11).
+type facilityResponse struct {
+	*domain.Facility
+	Language     domain.Language `json:"language"`
+	Untranslated []string        `json:"untranslated,omitempty"`
+}
+
 func (h facilityHandler) get(w http.ResponseWriter, r *http.Request) {
 	f, err := h.svc.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		writeError(w, http.StatusNotFound, "facility not found")
 		return
 	}
-	writeJSON(w, http.StatusOK, f)
+	lang := requestLanguage(r)
+	missing, err := h.svc.TranslateOne(r.Context(), lang, f)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load the facility")
+		return
+	}
+	writeJSON(w, http.StatusOK, facilityResponse{Facility: f, Language: lang, Untranslated: missing})
 }
 
 // availability returns hourly slots for ?date=YYYY-MM-DD (defaults to today).
@@ -213,4 +239,55 @@ func (h facilityHandler) removeBlackout(w http.ResponseWriter, r *http.Request) 
 func atoi(s string) int {
 	n, _ := strconv.Atoi(s)
 	return n
+}
+
+// translations returns every language's text for a facility, for the staff
+// editor's tabs.
+func (h facilityHandler) translations(w http.ResponseWriter, r *http.Request) {
+	out, err := h.svc.Translations(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "facility not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+type translationReq struct {
+	Language           string `json:"language"`
+	Name               string `json:"name"`
+	Description        string `json:"description"`
+	BeforeInstructions string `json:"beforeInstructions"`
+	AfterInstructions  string `json:"afterInstructions"`
+}
+
+// saveTranslation upserts one language's text for a facility (staff).
+func (h facilityHandler) saveTranslation(w http.ResponseWriter, r *http.Request) {
+	var req translationReq
+	if !decode(w, r, &req) {
+		return
+	}
+	// Reject an unservable language rather than storing text nobody will read.
+	lang := strings.ToLower(strings.TrimSpace(req.Language))
+	if lang != string(domain.LangEN) && lang != string(domain.LangFR) {
+		writeError(w, http.StatusBadRequest, "language must be \"en\" or \"fr\"")
+		return
+	}
+	err := h.svc.SaveTranslation(r.Context(), domain.FacilityTranslation{
+		FacilityID:         chi.URLParam(r, "id"),
+		Language:           domain.Language(lang),
+		Name:               strings.TrimSpace(req.Name),
+		Description:        strings.TrimSpace(req.Description),
+		BeforeInstructions: strings.TrimSpace(req.BeforeInstructions),
+		AfterInstructions:  strings.TrimSpace(req.AfterInstructions),
+	})
+	if err != nil {
+		writeError(w, http.StatusNotFound, "facility not found")
+		return
+	}
+	out, err := h.svc.Translations(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not reload translations")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }

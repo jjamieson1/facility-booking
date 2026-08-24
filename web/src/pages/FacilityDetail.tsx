@@ -84,6 +84,7 @@ export function FacilityDetail() {
               <p className="text-sm text-slate-600">{f.afterInstructions}</p>
             </Card>
           </div>
+          <UntranslatedNotice detail={f} />
           <CancellationTerms facilityId={f.id} />
         </div>
 
@@ -357,4 +358,21 @@ function describeHours(hours: number): string {
     return days === 1 ? "1 day" : `${days} days`;
   }
   return hours === 1 ? "1 hour" : `${hours} hours`;
+}
+
+// UntranslatedNotice tells a reader which text they are seeing in the other
+// language. §4.11's acceptance criterion is explicit: fall back to English, but
+// say so — silently serving English under a French heading is what makes a
+// bilingual claim untrue.
+function UntranslatedNotice({ detail }: { detail: { language?: string; untranslated?: string[] } }) {
+  const { t } = useTranslation();
+  const missing = detail.untranslated ?? [];
+  if (detail.language !== "fr" || missing.length === 0) return null;
+  return (
+    <Card className="p-4">
+      <p role="status" className="text-sm text-slate-600">
+        {t("facility.untranslated", { count: missing.length })}
+      </p>
+    </Card>
+  );
 }

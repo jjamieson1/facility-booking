@@ -32,7 +32,25 @@ image re-encode, size/decompression caps, random name, stored 0644 under `FB_DAT
 web root, served with `nosniff` + locking CSP + attachment; `internal/waiver` gates confirmation),
 and **multilingual EN/FR** (`react-i18next`, `web/src/lib/i18n.ts`, header toggle). i18n now
 covers **every page** — all UI strings go through `t()` against the `en`/`fr` bundles in
-`i18n.ts`; add new strings there. Core v1 + the "further useful" list are complete; facility
+`i18n.ts`; add new strings there.
+
+**Facility *content* is bilingual too** (FAC-12). Translations live in side tables
+(`domain.FacilityTranslation`, `AccessoryTranslation`) rather than `NameFr`-style columns, which
+would multiply every new translatable field by every language. The **base row holds the default
+language** (English), so existing read paths are untouched and English readers cost no extra query.
+`facility.Translate` overlays a language **per field**, so a facility translated except its
+after-use instructions shows French everywhere it has French. The API reports what fell back
+(`untranslated` on the facility response) and the SPA says so — §4.11's criterion is fall back *and
+say so*, since silently serving English under a French heading is what makes a bilingual claim
+untrue. **Location is deliberately not translatable**: a street address is the same in both
+languages, and so are capacity and fees — the staff editor keeps them out of the language tabs.
+
+Language is resolved most-specific-first: `?lang=` (what the SPA sends, following its own toggle) →
+the signed-in user's stored `User.Language` → `Accept-Language` → English. An explicit `?lang=`
+deliberately beats the stored preference: someone reading a page in one language should get that
+page in that language. Notifications translate the facility name into each **recipient's** language
+(`C2Notifier.translateFacility`), copying the facility so one recipient's language cannot leak into
+another's message. Core v1 + the "further useful" list are complete; facility
 *content* (names/descriptions/instructions) is stored in one language — a real bilingual
 deployment would translate that data too.
 

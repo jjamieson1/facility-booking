@@ -110,6 +110,8 @@ var routeAccess = map[string]access{
 	"POST /api/staff/facilities":                               accessStaff,
 	"PUT /api/staff/facilities/{id}":                           accessStaff,
 	"DELETE /api/staff/facilities/{id}":                        accessStaff,
+	"GET /api/staff/facilities/{id}/translations":              accessStaff,
+	"PUT /api/staff/facilities/{id}/translations":              accessStaff,
 	"GET /api/staff/facilities/{id}/blackouts":                 accessStaff,
 	"POST /api/staff/facilities/{id}/blackouts":                accessStaff,
 	"DELETE /api/staff/facilities/{id}/blackouts/{blackoutId}": accessStaff,
