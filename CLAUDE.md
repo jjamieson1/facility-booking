@@ -54,6 +54,27 @@ another's message. Core v1 + the "further useful" list are complete; facility
 *content* (names/descriptions/instructions) is stored in one language — a real bilingual
 deployment would translate that data too.
 
+The **§4.3 parameter filters** are complete: capacity, required accessories, cost range, area and
+accessibility needs, all ANDed, and ANDed again with the §4.4 date/time window (`facility.Search`
+layers the window on top of `List`, so a new `Filter` field composes for free). Two rules are easy
+to get wrong and are covered by tests plus mutation checks:
+
+- **Accessories are "all of", not "any of"** — `HAVING COUNT(DISTINCT a.name) = n`. `Filter.dedupe`
+  drops repeats first, since a duplicated name would push the count past what any facility can reach
+  and silently return nothing.
+- **The cost range prices against the viewer's own rate**, and that rate comes from the **session**
+  (`Filter.Resident`, set by the handler from `auth.FromContext`) — never from a query parameter.
+  Accepting `?resident=true` would hand anyone the resident rate. `Filter.feeColumn` mirrors
+  `domain.Facility.FeeFor`, and `FacilityList` shows that same price on the card: filtering on one
+  number while displaying another reads as a bug. Anonymous visitors are priced as non-residents,
+  matching the facility page.
+
+`Facility.Area` is a structured neighbourhood/zone (free-text `Location` cannot be filtered on
+meaningfully), editable in the staff back-office. `GET /api/facilities/filter-options` returns the
+areas and accessories actually in use, computed over the whole directory rather than the current
+result set — options that vanish as you filter leave you unable to undo them. `seed.backfillAreas`
+fills the field on already-seeded databases, matching by name and only where empty.
+
 Facility photos are **hosted locally** in `web/public/facilities/` (nine 1200x800 JPEGs),
 not hotlinked off-site — the off-site copies intermittently failed and put broken images on a
 public municipal page. `Facility.ImageURL` holds a path relative to the SPA

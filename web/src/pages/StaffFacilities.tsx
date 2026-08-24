@@ -93,6 +93,7 @@ function toInput(f?: Facility): FacilityInput {
     nonResidentFeeCents: f?.nonResidentFeeCents ?? 0,
     depositCents: f?.depositCents ?? 0,
     location: f?.location ?? "",
+    area: f?.area ?? "",
     imageUrl: f?.imageUrl ?? "",
     latitude: f?.latitude ?? 0,
     longitude: f?.longitude ?? 0,
@@ -126,6 +127,7 @@ function FacilityForm({ facility, onDone }: { facility?: Facility; onDone: () =>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t("manage.name")}><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></Field>
         <Field label={t("manage.location")}><Input value={form.location} onChange={(e) => set("location", e.target.value)} /></Field>
+        <Field label={t("manage.area")}><Input value={form.area} onChange={(e) => set("area", e.target.value)} placeholder={t("manage.areaPlaceholder")} /></Field>
         <Field label={t("manage.capacity")}><Input type="number" min={0} value={form.capacity} onChange={(e) => set("capacity", Number(e.target.value))} /></Field>
         <Field label={t("manage.imageUrl")}><Input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} /></Field>
         <Field label={t("manage.residentFee")}><Input type="number" min={0} step={0.01} value={form.feeCents / 100} onChange={(e) => set("feeCents", Math.round(Number(e.target.value) * 100))} /></Field>

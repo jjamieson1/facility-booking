@@ -85,6 +85,49 @@ func TestRelocateImagesLeavesOperatorChoicesAlone(t *testing.T) {
 	}
 }
 
+// Area arrived after these rows were written, so an existing demo database has
+// none — leaving the §4.3 area filter with an empty dropdown that reads as
+// broken rather than unused.
+func TestBackfillAreasFillsSeededFacilities(t *testing.T) {
+	db := testdb.New(t)
+	if err := db.Create(&domain.Facility{Name: "Rivermont Ice Arena"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(backfillAreas); err != nil {
+		t.Fatal(err)
+	}
+
+	var f domain.Facility
+	if err := db.Where("name = ?", "Rivermont Ice Arena").First(&f).Error; err != nil {
+		t.Fatal(err)
+	}
+	if f.Area != "Rink Road" {
+		t.Fatalf("area not backfilled: got %q", f.Area)
+	}
+}
+
+// Staff who have already placed a facility keep their choice; the backfill runs
+// on every boot, so it must only ever fill a gap.
+func TestBackfillAreasLeavesStaffChoiceAlone(t *testing.T) {
+	db := testdb.New(t)
+	if err := db.Create(&domain.Facility{Name: "Rivermont Ice Arena", Area: "Ward 3"}).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := db.Transaction(backfillAreas); err != nil {
+		t.Fatal(err)
+	}
+
+	var f domain.Facility
+	if err := db.Where("name = ?", "Rivermont Ice Arena").First(&f).Error; err != nil {
+		t.Fatal(err)
+	}
+	if f.Area != "Ward 3" {
+		t.Fatalf("overwrote staff choice: got %q", f.Area)
+	}
+}
+
 // Every facility the seed creates must carry a photo — the placeholder is a
 // fallback for bad data, not the intended look of the demo.
 func TestSeededFacilitiesAllCarryLocalPhotos(t *testing.T) {
@@ -103,6 +146,10 @@ func TestSeededFacilitiesAllCarryLocalPhotos(t *testing.T) {
 	for _, f := range facilities {
 		if f.ImageURL == "" {
 			t.Errorf("%s has no photo", f.Name)
+		}
+		// An unplaced facility is invisible to the §4.3 area filter.
+		if f.Area == "" {
+			t.Errorf("%s has no area", f.Name)
 		}
 	}
 }

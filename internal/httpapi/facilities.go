@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/jjamieson1/facility-booking/internal/auth"
 	"github.com/jjamieson1/facility-booking/internal/domain"
 	"github.com/jjamieson1/facility-booking/internal/facility"
 )
@@ -20,19 +21,37 @@ type facilityHandler struct {
 	svc *facility.Service
 }
 
-// list returns the directory, optionally filtered by query params:
+// list returns the directory, optionally filtered by query params (§4.3):
 //
-//	?minCapacity=50&free=true&accessory=Projector      (parameter search, §4.3)
-//	&date=2026-07-25&start=14:00&end=17:00             (adds date/time search, §4.4)
+//	?minCapacity=50&free=true                          capacity, free-only
+//	&accessory=Projector&accessory=Sound+system        repeat for "all of"
+//	&area=North+End                                    area/zone
+//	&stepFree=true&accessibleWashroom=true             accessibility needs
+//	&minFee=0&maxFee=10000                             cost range, in cents
+//	&date=2026-07-25&start=14:00&end=17:00             date/time search (§4.4)
 //
-// When a valid date+start+end window is supplied, only facilities free for that
-// whole window are returned, ANDed with the parameter filters.
+// All of them AND together, and the date/time window ANDs on top, because §4.3
+// specifies that filters combine and all must match.
+//
+// Note what is *not* read from the query string: whether the viewer is a
+// resident. The cost range is compared against the price this viewer would
+// actually pay, and that price follows from an entitlement the provider decides
+// — accepting ?resident=true would let anyone filter at the resident rate.
+// Anonymous visitors are priced as non-residents, matching what the facility
+// page already quotes them, so the directory never under-states a cost.
 func (h facilityHandler) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	user := auth.FromContext(r.Context())
 	f := facility.Filter{
-		MinCapacity: atoi(q.Get("minCapacity")),
-		FreeOnly:    q.Get("free") == "true",
-		Accessory:   q.Get("accessory"),
+		MinCapacity:        atoi(q.Get("minCapacity")),
+		FreeOnly:           q.Get("free") == "true",
+		Accessories:        q["accessory"],
+		Area:               strings.TrimSpace(q.Get("area")),
+		StepFree:           q.Get("stepFree") == "true",
+		AccessibleWashroom: q.Get("accessibleWashroom") == "true",
+		MinFeeCents:        atoi(q.Get("minFee")),
+		MaxFeeCents:        atoi(q.Get("maxFee")),
+		Resident:           user != nil && user.IsResident,
 	}
 	from, to, ok, err := parseWindow(q.Get("date"), q.Get("start"), q.Get("end"))
 	if err != nil {
@@ -61,6 +80,18 @@ func (h facilityHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, facilities)
+}
+
+// filterOptions lists the areas and accessories the filter panel can offer.
+// Public, like the directory it filters: an anonymous resident browsing for a
+// space near them needs the options as much as a signed-in one.
+func (h facilityHandler) filterOptions(w http.ResponseWriter, r *http.Request) {
+	opts, err := h.svc.FilterOptions(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load filter options")
+		return
+	}
+	writeJSON(w, http.StatusOK, opts)
 }
 
 // parseWindow builds a [from, to] time window from date=YYYY-MM-DD and

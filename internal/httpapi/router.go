@@ -86,6 +86,9 @@ func New(d Deps) http.Handler {
 
 		// Public directory + availability.
 		api.Get("/facilities", fac.list)
+		// Registered before the {id} route it shadows: chi matches a static
+		// segment ahead of a wildcard, so it is never read as a facility id.
+		api.Get("/facilities/filter-options", fac.filterOptions)
 		api.Get("/facilities/{id}", fac.get)
 		api.Get("/facilities/{id}/availability", fac.availability)
 		api.Get("/facilities/{id}/calendar", fac.calendar)
