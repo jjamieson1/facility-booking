@@ -84,7 +84,7 @@ func TestPendingProviderFailsLoudly(t *testing.T) {
 		if _, err := p.Charge(context.Background(), 1000, "4242424242424242"); !errors.Is(err, ErrNotConnected) {
 			t.Errorf("%s charge: want ErrNotConnected, got %v", k, err)
 		}
-		if _, err := p.Refund(context.Background(), "ref"); !errors.Is(err, ErrNotConnected) {
+		if _, err := p.Refund(context.Background(), "ref", 1000); !errors.Is(err, ErrNotConnected) {
 			t.Errorf("%s refund: want ErrNotConnected, got %v", k, err)
 		}
 	}

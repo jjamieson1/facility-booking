@@ -18,6 +18,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/facility"
 	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
+	"github.com/jjamieson1/facility-booking/internal/policy"
 	"github.com/jjamieson1/facility-booking/internal/reports"
 	"github.com/jjamieson1/facility-booking/internal/servicecard"
 	"github.com/jjamieson1/facility-booking/internal/users"
@@ -39,6 +40,7 @@ type Deps struct {
 	Calendar        *calendar.Service
 	Entitlements    *entitlement.Service
 	PaymentSettings *payment.SettingsService
+	Policy          *policy.Service
 	ServiceCard     *servicecard.Service
 	Notifier        notify.Notifier
 	Audit           auditlog.Recorder
@@ -63,7 +65,7 @@ func New(d Deps) http.Handler {
 	}
 
 	fac := facilityHandler{svc: d.Facility}
-	bk := bookingHandler{bookings: d.Booking, facilities: d.Facility, payments: d.Payment, waitlist: d.Waitlist, waiver: d.Waiver, entitlements: d.Entitlements, notifier: d.Notifier, audit: d.Audit}
+	bk := bookingHandler{bookings: d.Booking, facilities: d.Facility, payments: d.Payment, waitlist: d.Waitlist, waiver: d.Waiver, entitlements: d.Entitlements, policies: d.Policy, notifier: d.Notifier, audit: d.Audit}
 	wv := waiverHandler{svc: d.Waiver}
 	rep := reportHandler{svc: d.Reports}
 	pmt := paymentHandler{svc: d.Payment}
@@ -73,6 +75,7 @@ func New(d Deps) http.Handler {
 	cal := calendarSettingsHandler{svc: d.Calendar}
 	ent := entitlementHandler{svc: d.Entitlements}
 	psh := paymentSettingsHandler{svc: d.PaymentSettings}
+	pol := policyHandler{policies: d.Policy, bookings: d.Booking}
 	ah := authHandler{svc: d.Auth, appOrigin: d.Cfg.AppOrigin}
 
 	r.Route(d.Cfg.BasePath+"/api", func(api chi.Router) {
@@ -83,6 +86,7 @@ func New(d Deps) http.Handler {
 		api.Get("/facilities/{id}", fac.get)
 		api.Get("/facilities/{id}/availability", fac.availability)
 		api.Get("/facilities/{id}/calendar", fac.calendar)
+		api.Get("/facilities/{id}/cancellation-policy", pol.facilityPolicy)
 
 		// City calendar feed (public read-only iCal).
 		api.Get("/calendar.ics", bk.feed)
@@ -103,6 +107,7 @@ func New(d Deps) http.Handler {
 			pr.Get("/bookings/mine", bk.mine)
 			pr.Get("/bookings/{id}", bk.get)
 			pr.Get("/bookings/{id}/invite.ics", bk.invite)
+			pr.Get("/bookings/{id}/refund-quote", pol.refundQuote)
 			pr.Post("/bookings/{id}/cancel", bk.cancel)
 			pr.Post("/bookings/{id}/pay", bk.pay)
 			// A facility requiring a waiver cannot be confirmed without one, so a

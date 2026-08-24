@@ -41,7 +41,7 @@ func window() (time.Time, time.Time) {
 
 func TestRequestAutoConfirm(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, false)
 	start, end := window()
 
@@ -56,7 +56,7 @@ func TestRequestAutoConfirm(t *testing.T) {
 
 func TestRequestRequiresApproval(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, true)
 	start, end := window()
 
@@ -70,7 +70,7 @@ func TestRequestRequiresApproval(t *testing.T) {
 // an overlapping slot must fail once the first holds it.
 func TestNoDoubleBooking(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, false)
 	start, end := window()
 
@@ -90,7 +90,7 @@ func TestNoDoubleBooking(t *testing.T) {
 
 func TestApproveDenyCancelFlow(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, true)
 	start, end := window()
 	admin := &domain.User{Base: domain.Base{ID: "admin1"}, Role: domain.RoleAdmin}
@@ -121,7 +121,7 @@ func TestApproveDenyCancelFlow(t *testing.T) {
 
 func TestReschedule(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, false)
 	owner := &domain.User{Base: domain.Base{ID: uid}, Role: domain.RoleResident}
 
@@ -161,7 +161,7 @@ func TestReschedule(t *testing.T) {
 
 func TestResidentPricing(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 
 	// Facility with resident $40 / non-resident $60.
 	f := domain.Facility{Name: "Room", RequiresApproval: false, MinMinutes: 60, MaxMinutes: 240,
@@ -189,7 +189,7 @@ func TestResidentPricing(t *testing.T) {
 
 func TestRequestRecurring(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, false)
 
 	// Wednesday 10:00–11:00, weekly for 4 weeks.
@@ -222,7 +222,7 @@ func TestRequestRecurring(t *testing.T) {
 
 func TestCancelForbiddenForOtherResident(t *testing.T) {
 	db := newDB(t)
-	svc := NewService(db)
+	svc := NewService(db, nil)
 	fid, uid := seedFacility(t, db, false)
 	start, end := window()
 	b, _ := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})

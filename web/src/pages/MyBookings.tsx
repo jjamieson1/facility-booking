@@ -12,11 +12,6 @@ export function MyBookings() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["myBookings"], queryFn: api.myBookings, enabled: !!user });
 
-  const cancel = useMutation({
-    mutationFn: (id: string) => api.cancelBooking(id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["myBookings"] }),
-  });
-
   const { data: waitlist } = useQuery({ queryKey: ["myWaitlist"], queryFn: api.myWaitlist, enabled: !!user });
   const leave = useMutation({
     mutationFn: (id: string) => api.leaveWaitlist(id),
@@ -58,9 +53,7 @@ export function MyBookings() {
                   {b.payment?.status === "paid" && <span className="text-xs text-green-700">{t("mybookings.paid")}</span>}
                   <StatusBadge status={b.status} />
                   <Link to={`/bookings/${b.id}`}><Button variant="outline">{t("common.view")}</Button></Link>
-                  {cancellable && (
-                    <Button variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate(b.id)}>{t("mybookings.cancel")}</Button>
-                  )}
+                  {cancellable && <CancelButton bookingId={b.id} />}
                 </div>
               </Card>
             );
@@ -95,6 +88,60 @@ export function MyBookings() {
 //
 // Note what this component no longer does: it does not tell the server the user
 // is a resident. It submits inputs; the provider decides.
+// CancelButton asks first, and states the consequence in money before it does
+// anything. §4.7 requires the policy to be applied on cancellation; showing the
+// figure beforehand is what stops a resident discovering it on a statement.
+function CancelButton({ bookingId }: { bookingId: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [confirming, setConfirming] = useState(false);
+  const [outcome, setOutcome] = useState<string>("");
+
+  // Only quoted once the resident reaches for cancel — no point asking the
+  // server what every listed booking would refund.
+  const { data: quote, isLoading } = useQuery({
+    queryKey: ["refundQuote", bookingId],
+    queryFn: () => api.refundQuote(bookingId),
+    enabled: confirming,
+  });
+
+  const cancel = useMutation({
+    mutationFn: () => api.cancelBooking(bookingId),
+    onSuccess: (res) => {
+      setConfirming(false);
+      setOutcome(
+        res.refund && res.refund.refundCents > 0
+          ? t("mybookings.refundIssued", { amount: formatFee(res.refund.refundCents) })
+          : t("mybookings.noRefund"),
+      );
+      void qc.invalidateQueries({ queryKey: ["myBookings"] });
+    },
+  });
+
+  if (outcome) return <span role="status" className="text-sm text-slate-600">{outcome}</span>;
+
+  if (!confirming) {
+    return (
+      <Button variant="ghost" onClick={() => setConfirming(true)}>{t("mybookings.cancel")}</Button>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span role="status" className="text-sm text-slate-600">
+        {isLoading ? t("common.loading") : quote?.explanation}
+        {quote && quote.refundCents > 0 && (
+          <strong className="ml-1">{t("mybookings.willRefund", { amount: formatFee(quote.refundCents) })}</strong>
+        )}
+      </span>
+      <Button variant="danger" disabled={cancel.isPending || isLoading} onClick={() => cancel.mutate()}>
+        {cancel.isPending ? t("mybookings.cancelling") : t("mybookings.confirmCancel")}
+      </Button>
+      <Button variant="outline" onClick={() => setConfirming(false)}>{t("mybookings.keepBooking")}</Button>
+    </div>
+  );
+}
+
 function ResidencyCard() {
   const { t } = useTranslation();
   const { user } = useAuth();

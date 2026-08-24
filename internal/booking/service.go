@@ -27,11 +27,26 @@ var (
 	ErrNotModifiable    = errors.New("booking: past the modifiable window")
 )
 
-// Service holds the DB handle.
-type Service struct{ db *gorm.DB }
+// CutoffResolver reports how close to its start a booking may still be
+// rescheduled, per the facility's cancellation policy (§4.9). It is an interface
+// here rather than a direct dependency on internal/policy so the booking service
+// keeps its narrow surface — and so tests can set a cutoff without a policy row.
+type CutoffResolver interface {
+	ModificationCutoff(ctx context.Context, facilityID string) (time.Duration, error)
+}
 
-// NewService constructs the booking service.
-func NewService(db *gorm.DB) *Service { return &Service{db: db} }
+// Service holds the DB handle and, optionally, the policy that governs how late
+// a booking may be changed.
+type Service struct {
+	db      *gorm.DB
+	cutoffs CutoffResolver
+}
+
+// NewService constructs the booking service. A nil CutoffResolver means no
+// policy cutoff is enforced beyond "the booking has not started".
+func NewService(db *gorm.DB, cutoffs CutoffResolver) *Service {
+	return &Service{db: db, cutoffs: cutoffs}
+}
 
 // Pricing is the entitlement picture resolved for the booker *before* this
 // transaction opens (§P2-5.11a constraint 1 — a provider callout inside the
@@ -199,6 +214,19 @@ func (s *Service) Reschedule(ctx context.Context, actor *domain.User, bookingID 
 		}
 		if !b.Active() || !b.StartsAt.After(time.Now()) {
 			return ErrNotModifiable
+		}
+		// The policy's modification cutoff: too close to the start and the
+		// booking is fixed, because staff have already planned around it.
+		// Resolved outside this transaction's locking concerns — it is a local
+		// read, but keep it before loadWindow so a refusal costs no locks.
+		if s.cutoffs != nil {
+			cutoff, err := s.cutoffs.ModificationCutoff(ctx, b.FacilityID)
+			if err != nil {
+				return err
+			}
+			if cutoff > 0 && time.Until(b.StartsAt) < cutoff {
+				return ErrNotModifiable
+			}
 		}
 
 		var fac domain.Facility

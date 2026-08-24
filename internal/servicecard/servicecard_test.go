@@ -24,7 +24,7 @@ func newSvc(t *testing.T) (*Service, *gorm.DB) {
 	db := testdb.New(t)
 	contact := config.ServiceCardContact{Email: "facilities@rivermont.ca", Phone: "+1 555-0142", City: "Rivermont"}
 	wl := waitlist.NewService(db, notify.NewLogNotifier())
-	return NewService(db, booking.NewService(db), wl, appURL, contact), db
+	return NewService(db, booking.NewService(db, nil), wl, appURL, contact), db
 }
 
 func mkWaitlist(t *testing.T, db *gorm.DB, userID, facID string, start time.Time) {

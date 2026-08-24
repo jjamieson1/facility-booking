@@ -47,6 +47,8 @@ func AllModels() []any {
 		&AuditLog{},
 		&CalendarIntegration{},
 		&PaymentIntegration{},
+		&CancellationPolicy{},
+		&RefundTier{},
 		&EntitlementDetermination{},
 		&BookingEntitlement{},
 	}

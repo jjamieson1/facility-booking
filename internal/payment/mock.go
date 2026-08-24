@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/jjamieson1/facility-booking/internal/domain"
 )
@@ -35,9 +36,10 @@ func (MockProvider) Charge(_ context.Context, _ int, card string) (Charge, error
 	return Charge{Ref: "mock_" + randRef(), Status: domain.PayPaid, Message: "Approved.", Last4: last4}, nil
 }
 
-// Refund always succeeds in the mock.
-func (MockProvider) Refund(context.Context, string) (string, error) {
-	return "Refund issued to the original card.", nil
+// Refund always succeeds in the mock, and reports the amount so a partial
+// refund is visible on the demo's reconciliation screen.
+func (MockProvider) Refund(_ context.Context, _ string, amountCents int) (string, error) {
+	return fmt.Sprintf("Refund of %d.%02d issued to the original card.", amountCents/100, amountCents%100), nil
 }
 
 // cardLast4 returns the last four digits of the (demo) PAN, or "" if too short.
