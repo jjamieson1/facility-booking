@@ -71,15 +71,66 @@ func MunicipalRoll() []string {
 	}
 }
 
+// seededImageURLs maps the off-site photos this seed used to ship with to the
+// copies now served from the SPA. Demo databases were seeded before the photos
+// were brought in-house, so without a rewrite an existing deployment keeps
+// requesting Unsplash — which is what put broken images on the facilities page.
+//
+// Keyed by the exact old URL rather than by facility name, so an operator who
+// pointed a facility at their own CDN through the back-office is never
+// overwritten: only the strings this package itself wrote are replaced.
+var seededImageURLs = map[string]string{
+	"https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800": "facilities/community-hall.jpg",
+	"https://images.unsplash.com/photo-1580692475446-c2fabbbb2069?w=800": "facilities/ice-arena.jpg",
+	"https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800": "facilities/playing-field.jpg",
+	"https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800": "facilities/pavilion.jpg",
+	"https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800": "facilities/assembly-room.jpg",
+	"https://images.unsplash.com/photo-1497366216548-37526070297c?w=800": "facilities/meeting-room.jpg",
+	"https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800": "facilities/dance-studio.jpg",
+}
+
+// seededHalfImages fills in the two divided-hall halves, which shipped with no
+// photo at all. Matched by name and only applied to a facility with an empty
+// ImageURL, so it neither fights an operator's choice nor needs the old value.
+var seededHalfImages = map[string]string{
+	"Community Hall — North Half": "facilities/hall-north.jpg",
+	"Community Hall — South Half": "facilities/hall-south.jpg",
+}
+
+// relocateImages repoints already-seeded demo facilities at the local photos.
+// Runs on every boot, like the cancellation policy, because it repairs existing
+// data rather than creating demo data; it is idempotent (the second run matches
+// nothing).
+func relocateImages(tx *gorm.DB) error {
+	for old, local := range seededImageURLs {
+		if err := tx.Model(&domain.Facility{}).Where("image_url = ?", old).Update("image_url", local).Error; err != nil {
+			return err
+		}
+	}
+	for name, local := range seededHalfImages {
+		if err := tx.Model(&domain.Facility{}).
+			Where("name = ? AND (image_url = ? OR image_url IS NULL)", name, "").
+			Update("image_url", local).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Run seeds demo data when the facilities table is empty.
 //
 // The cancellation policy is seeded separately, on every boot, because it is not
 // demo data: it is configuration the municipality is expected to edit. Gating it
 // behind "no facilities yet" would mean an existing deployment silently ran on
 // the built-in fallback, which staff cannot see or change in the back-office.
-// Both steps are idempotent.
+// relocateImages runs unconditionally for the same reason: it repairs rows an
+// earlier seed already wrote. All three steps are idempotent.
 func Run(db *gorm.DB) error {
 	if err := db.Transaction(seedCancellationPolicy); err != nil {
+		return err
+	}
+
+	if err := db.Transaction(relocateImages); err != nil {
 		return err
 	}
 
@@ -164,7 +215,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 	specs := []facilitySpec{
 		{weight: 30, items: map[string]int{"Sound system": 1, "Wi-Fi": 1, "Chairs": 200, "Tables": 30, "Kitchen": 1, "Coffee maker": 2}, f: domain.Facility{
 			Name: "Rivermont Community Hall", Capacity: 200, FeeCents: 15000, NonResidentFeeCents: 22500, DepositCents: 5000,
-			Location: "120 Riverside Ave", Latitude: 44.2312, Longitude: -76.4860, ImageURL: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800",
+			Location: "120 Riverside Ave", Latitude: 44.2312, Longitude: -76.4860, ImageURL: "facilities/community-hall.jpg",
 			Description:      "A large hall for weddings, markets, and community events, with an attached kitchen.",
 			RequiresApproval: true, MinMinutes: 120, MaxMinutes: 600, BufferMinutes: 30, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "Collect keys from the front desk. Tables are stacked in the rear closet.",
@@ -172,7 +223,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 26, items: map[string]int{"Ice resurfacer": 1, "Sound system": 1, "Wi-Fi": 1}, f: domain.Facility{
 			Name: "Rivermont Ice Arena", Capacity: 250, FeeCents: 12000, NonResidentFeeCents: 18000, DepositCents: 4000,
-			Location: "85 Rink Rd", Latitude: 44.2340, Longitude: -76.4902, ImageURL: "https://images.unsplash.com/photo-1580692475446-c2fabbbb2069?w=800",
+			Location: "85 Rink Rd", Latitude: 44.2340, Longitude: -76.4902, ImageURL: "facilities/ice-arena.jpg",
 			Description:      "A full-size ice rink for hockey, skating, and tournaments.",
 			RequiresApproval: true, MinMinutes: 60, MaxMinutes: 240, BufferMinutes: 30, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "Check in at the arena office; skate aid available on request.",
@@ -180,7 +231,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 22, items: map[string]int{}, f: domain.Facility{
 			Name: "Cedar Playing Field", Capacity: 100, FeeCents: 0,
-			Location: "Rivermont Park, Field 2", Latitude: 44.2280, Longitude: -76.4795, ImageURL: "https://images.unsplash.com/photo-1459865264687-595d652de67e?w=800",
+			Location: "Rivermont Park, Field 2", Latitude: 44.2280, Longitude: -76.4795, ImageURL: "facilities/playing-field.jpg",
 			Description:      "A full-size sports field for soccer and community games. Free to book.",
 			RequiresApproval: false, MinMinutes: 60, MaxMinutes: 240, BufferMinutes: 0, StepFreeAccess: true,
 			BeforeInstructions: "Gates open 15 minutes before your slot.",
@@ -188,7 +239,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 15, items: map[string]int{"Tables": 8, "Wi-Fi": 1}, f: domain.Facility{
 			Name: "Willow Park Pavilion", Capacity: 40, FeeCents: 6000, NonResidentFeeCents: 9000, DepositCents: 2000,
-			Location: "Rivermont Park, North Lawn", Latitude: 44.2295, Longitude: -76.4810, ImageURL: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800",
+			Location: "Rivermont Park, North Lawn", Latitude: 44.2295, Longitude: -76.4810, ImageURL: "facilities/pavilion.jpg",
 			Description:      "A covered park pavilion for picnics, birthdays, and gatherings.",
 			RequiresApproval: true, MinMinutes: 120, MaxMinutes: 480, BufferMinutes: 30, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "Picnic tables are on site. Power outlets are by the north post.",
@@ -196,7 +247,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 14, items: map[string]int{"Projector": 1, "Screen": 1, "Sound system": 1, "Wi-Fi": 1, "Chairs": 80}, f: domain.Facility{
 			Name: "Assembly Room", Capacity: 80, FeeCents: 8000, NonResidentFeeCents: 12000, DepositCents: 2000,
-			Location: "120 Riverside Ave, main floor", Latitude: 44.2311, Longitude: -76.4855, ImageURL: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800",
+			Location: "120 Riverside Ave, main floor", Latitude: 44.2311, Longitude: -76.4855, ImageURL: "facilities/assembly-room.jpg",
 			Description:      "A tiered assembly room for talks, AGMs, and presentations.",
 			RequiresApproval: false, MinMinutes: 60, MaxMinutes: 300, BufferMinutes: 15, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "AV desk is at the back; the access code is emailed the morning of.",
@@ -204,7 +255,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 12, items: map[string]int{"Wi-Fi": 1, "Chairs": 20}, f: domain.Facility{
 			Name: "Maple Meeting Room", Capacity: 20, FeeCents: 4000, NonResidentFeeCents: 6000,
-			Location: "120 Riverside Ave, 2nd floor", Latitude: 44.2314, Longitude: -76.4858, ImageURL: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
+			Location: "120 Riverside Ave, 2nd floor", Latitude: 44.2314, Longitude: -76.4858, ImageURL: "facilities/meeting-room.jpg",
 			Description:      "A bright boardroom for meetings and workshops.",
 			RequiresApproval: false, RequiresWaiver: true, MinMinutes: 60, MaxMinutes: 480, BufferMinutes: 15, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "Access code is sent by email the morning of your booking.",
@@ -212,7 +263,7 @@ func seedFacilities(tx *gorm.DB, accessories map[string]*domain.Accessory) ([]fa
 		}},
 		{weight: 10, items: map[string]int{"Sound system": 1, "Wi-Fi": 1}, f: domain.Facility{
 			Name: "Dance Studio", Capacity: 30, FeeCents: 5000, NonResidentFeeCents: 7500,
-			Location: "85 Rink Rd, studio B", Latitude: 44.2338, Longitude: -76.4899, ImageURL: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=800",
+			Location: "85 Rink Rd, studio B", Latitude: 44.2338, Longitude: -76.4899, ImageURL: "facilities/dance-studio.jpg",
 			Description:      "A mirrored studio with sprung floor for dance, yoga, and fitness classes.",
 			RequiresApproval: false, MinMinutes: 60, MaxMinutes: 180, BufferMinutes: 15, StepFreeAccess: true, AccessibleWashroom: true,
 			BeforeInstructions: "Indoor shoes only. Speakers connect over Bluetooth.",
@@ -262,7 +313,7 @@ func seedDividedHall(tx *gorm.DB, accessories map[string]*domain.Accessory, hall
 	}
 	halves := []facilitySpec{
 		{weight: 8, items: map[string]int{"Chairs": 100, "Wi-Fi": 1}, f: domain.Facility{
-			Name: "Community Hall — North Half", Capacity: 100, FeeCents: 9000, NonResidentFeeCents: 13500, DepositCents: 3000,
+			Name: "Community Hall — North Half", Capacity: 100, ImageURL: "facilities/hall-north.jpg", FeeCents: 9000, NonResidentFeeCents: 13500, DepositCents: 3000,
 			Location: "120 Riverside Ave", Latitude: 44.2312, Longitude: -76.4860,
 			Description:      "Half of the community hall, divided by the retractable partition. Booking the whole hall books this too.",
 			RequiresApproval: true, MinMinutes: 120, MaxMinutes: 600, BufferMinutes: 30, StepFreeAccess: true, AccessibleWashroom: true,
@@ -270,7 +321,7 @@ func seedDividedHall(tx *gorm.DB, accessories map[string]*domain.Accessory, hall
 			AfterInstructions:  "Stack chairs against the partition wall and wipe tables.",
 		}},
 		{weight: 8, items: map[string]int{"Chairs": 100, "Kitchen": 1, "Coffee maker": 2}, f: domain.Facility{
-			Name: "Community Hall — South Half", Capacity: 100, FeeCents: 10000, NonResidentFeeCents: 15000, DepositCents: 3000,
+			Name: "Community Hall — South Half", Capacity: 100, ImageURL: "facilities/hall-south.jpg", FeeCents: 10000, NonResidentFeeCents: 15000, DepositCents: 3000,
 			Location: "120 Riverside Ave", Latitude: 44.2312, Longitude: -76.4860,
 			Description:      "Half of the community hall, with the attached kitchen. Booking the whole hall books this too.",
 			RequiresApproval: true, MinMinutes: 120, MaxMinutes: 600, BufferMinutes: 30, StepFreeAccess: true, AccessibleWashroom: true,

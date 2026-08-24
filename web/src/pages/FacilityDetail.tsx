@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next";
 import { api, type Booking, type RecurringResult } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Input, Spinner, formatFee, formatTime } from "../components/ui";
+import { Badge, Button, Card, FacilityImage, Input, Spinner, formatFee, formatTime } from "../components/ui";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -26,7 +26,7 @@ export function FacilityDetail() {
   return (
     <div className="space-y-6">
       <Link to="/" className="text-sm text-brand-600 hover:underline">{t("facility.all")}</Link>
-      <img src={f.imageUrl} alt={f.name} className="h-64 w-full rounded-xl object-cover" />
+      <FacilityImage src={f.imageUrl} alt={f.name} className="h-64 w-full rounded-xl object-cover" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-3xl font-semibold">{f.name}</h2>

@@ -1,4 +1,5 @@
 // A small shadcn-style UI kit for the demo.
+import { useState } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -70,4 +71,65 @@ const statusTone: Record<string, "green" | "amber" | "red" | "slate"> = {
 export function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation();
   return <Badge tone={statusTone[status] ?? "slate"}>{t(`status.${status}`, status)}</Badge>;
+}
+
+// FacilityImage renders a facility photo, or a labelled placeholder when there
+// is none or the file fails to load.
+//
+// Two failures it prevents. An empty `src` is not "no image" to a browser — it
+// resolves to the current page URL, so the page re-requests itself and renders a
+// broken-image icon. And an off-site photo that 404s or is blocked leaves the
+// same icon, which on a municipal site reads as a broken site rather than a
+// missing photo.
+//
+// The placeholder is decorative, so it carries aria-hidden and empty alt: the
+// facility name is already the adjacent heading, and announcing it twice adds
+// nothing for a screen-reader user.
+// resolveImage turns whatever is stored on the facility into a URL the browser
+// can fetch. Locally-hosted photos are stored as a path relative to the SPA
+// ("facilities/ice-arena.jpg") rather than an absolute one, because production
+// serves the app under /facility-booking/ — a leading slash would 404 there.
+// Absolute URLs are left alone so a municipality can still point at its own CDN.
+function resolveImage(src?: string): string {
+  const value = (src ?? "").trim();
+  if (value === "" || /^(https?:)?\/\//.test(value) || value.startsWith("data:")) return value;
+  return `${import.meta.env.BASE_URL}${value.replace(/^\//, "")}`;
+}
+
+export function FacilityImage({
+  src,
+  alt,
+  className = "",
+}: {
+  src?: string;
+  alt: string;
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveImage(src);
+  const usable = resolved !== "" && !failed;
+
+  if (!usable) {
+    return (
+      <div
+        aria-hidden="true"
+        className={`grid place-items-center bg-slate-100 text-slate-400 ${className}`}
+      >
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <circle cx="8.5" cy="10.5" r="1.5" />
+          <path d="M21 15l-5-5-4 4-2-2-4 4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={resolved}
+      alt={alt}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={className}
+    />
+  );
 }
