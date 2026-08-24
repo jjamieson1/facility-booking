@@ -120,7 +120,9 @@ var modules = []Module{
 // Modules returns the registered calendar types for the admin form.
 func Modules() []Module {
 	out := make([]Module, len(modules))
-	copy(out, modules)
+	for i, m := range modules {
+		out[i] = withFields(m)
+	}
 	return out
 }
 
@@ -128,10 +130,23 @@ func Modules() []Module {
 func ModuleFor(k Kind) (Module, bool) {
 	for _, m := range modules {
 		if m.Kind == k {
-			return m, true
+			return withFields(m), true
 		}
 	}
 	return Module{}, false
+}
+
+// withFields guarantees Fields is non-nil.
+//
+// A nil slice marshals to `null`, and the admin form does `module.fields.length`
+// — which throws on null and takes the whole page down, not just the field list.
+// The modules with no configuration (ics, none) are exactly the common ones, so
+// this is the default path rather than an edge case.
+func withFields(m Module) Module {
+	if m.Fields == nil {
+		m.Fields = []Field{}
+	}
+	return m
 }
 
 // New constructs the Provider for a kind. Config holds the module's non-secret
