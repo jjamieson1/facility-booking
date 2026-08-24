@@ -65,7 +65,7 @@ export function formatTime(iso: string): string {
 }
 
 const statusTone: Record<string, "green" | "amber" | "red" | "slate"> = {
-  confirmed: "green", pending: "amber", denied: "red", cancelled: "slate",
+  confirmed: "green", pending: "amber", conditional: "amber", denied: "red", cancelled: "slate",
 };
 
 export function StatusBadge({ status }: { status: string }) {

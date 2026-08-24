@@ -36,6 +36,18 @@ func when(t time.Time, l string) string {
 	return t.Format("Mon 2 Jan 2006, 3:04 PM")
 }
 
+// money renders cents for a person, in their language. French Canadian puts the
+// symbol after the amount with a comma decimal separator ("50,00 $"); getting
+// that wrong is the kind of detail a francophone resident reads as the city not
+// really speaking their language.
+func money(cents int, l string) string {
+	whole, frac := cents/100, cents%100
+	if l == "fr" {
+		return fmt.Sprintf("%d,%02d $", whole, frac)
+	}
+	return fmt.Sprintf("$%d.%02d", whole, frac)
+}
+
 func facilityName(b domain.Booking) string {
 	if b.Facility != nil && b.Facility.Name != "" {
 		return b.Facility.Name
@@ -122,6 +134,47 @@ func bookingDenied(b domain.Booking, l string) message {
 		Body: fmt.Sprintf("Your request for %s on %s was not approved. "+
 			"Contact the city if you'd like to know why or to propose another time.", name, at),
 		Short: fmt.Sprintf("Declined: %s, %s.", name, at),
+	}
+}
+
+// bookingConditional tells the booker their request was approved subject to
+// conditions (§4.5). The conditions themselves are spelled out here, not just
+// linked, because for a resident who reads only the SMS or the email this is the
+// only place they appear — and a condition nobody read is a condition nobody
+// can meet.
+func bookingConditional(b domain.Booking, l string) message {
+	name, at := facilityName(b), when(b.StartsAt, l)
+	terms, fee := "", 0
+	if b.Condition != nil {
+		terms, fee = b.Condition.Terms, b.Condition.AdditionalFeeCents
+	}
+	if l == "fr" {
+		body := fmt.Sprintf("Votre demande pour %s le %s est approuvée sous conditions. ", name, at)
+		if terms != "" {
+			body += fmt.Sprintf("Conditions : %s. ", terms)
+		}
+		if fee > 0 {
+			body += fmt.Sprintf("Des frais supplémentaires de %s s'appliquent. ", money(fee, l))
+		}
+		body += "Votre créneau est retenu; ouvrez votre réservation pour accepter les conditions et voir ce qu'il reste à faire."
+		return message{
+			Title: "Réservation approuvée sous conditions",
+			Body:  body,
+			Short: fmt.Sprintf("Conditions à accepter : %s, %s.", name, at),
+		}
+	}
+	body := fmt.Sprintf("Your request for %s on %s is approved with conditions. ", name, at)
+	if terms != "" {
+		body += fmt.Sprintf("Conditions: %s. ", terms)
+	}
+	if fee > 0 {
+		body += fmt.Sprintf("An additional fee of %s applies. ", money(fee, l))
+	}
+	body += "Your slot is held; open your booking to accept the conditions and see what is left to do."
+	return message{
+		Title: "Booking approved with conditions",
+		Body:  body,
+		Short: fmt.Sprintf("Conditions to accept: %s, %s.", name, at),
 	}
 }
 

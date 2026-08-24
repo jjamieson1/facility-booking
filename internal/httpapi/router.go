@@ -69,7 +69,7 @@ func New(d Deps) http.Handler {
 	fac := facilityHandler{svc: d.Facility}
 	pcb := paymentCallbackHandler{auth: d.Auth, payments: d.Payment, audit: d.Audit}
 	bk := bookingHandler{bookings: d.Booking, facilities: d.Facility, payments: d.Payment, waitlist: d.Waitlist, waiver: d.Waiver, entitlements: d.Entitlements, policies: d.Policy, notifier: d.Notifier, audit: d.Audit}
-	wv := waiverHandler{svc: d.Waiver}
+	wv := waiverHandler{svc: d.Waiver, onUploaded: bk.settleConditions}
 	rep := reportHandler{svc: d.Reports}
 	pmt := paymentHandler{svc: d.Payment}
 	ua := userAdminHandler{svc: d.Users}
@@ -122,6 +122,11 @@ func New(d Deps) http.Handler {
 			pr.Get("/bookings/{id}/invite.ics", bk.invite)
 			pr.Get("/bookings/{id}/refund-quote", pol.refundQuote)
 			pr.Post("/bookings/{id}/cancel", bk.cancel)
+			// Conditional approval (§4.5): the booker sees what is outstanding and
+			// accepts the terms. Ownership is enforced in the service — staff cannot
+			// accept on a resident's behalf.
+			pr.Get("/bookings/{id}/conditions", bk.conditions)
+			pr.Post("/bookings/{id}/conditions/accept", bk.acceptConditions)
 			pr.Post("/bookings/{id}/pay", bk.pay)
 			// A facility requiring a waiver cannot be confirmed without one, so a
 			// guest must be able to upload and retrieve their own.
@@ -154,6 +159,10 @@ func New(d Deps) http.Handler {
 			sr.Use(auth.RequireRole(domain.RoleStaff, domain.RoleAdmin))
 			sr.Get("/staff/bookings/pending", bk.pending)
 			sr.Post("/staff/bookings/{id}/approve", bk.approve)
+			sr.Post("/staff/bookings/{id}/approve-with-conditions", bk.approveWithConditions)
+			// Registered before the {id} routes it sits beside; chi matches the static
+			// segment first, so "awaiting-resident" is never read as a booking id.
+			sr.Get("/staff/bookings/awaiting-resident", bk.awaitingResident)
 			sr.Post("/staff/bookings/{id}/deny", bk.deny)
 			sr.Post("/staff/bookings/{id}/refund", bk.refund)
 			sr.Post("/staff/facilities", fac.create)

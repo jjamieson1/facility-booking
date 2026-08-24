@@ -14,6 +14,10 @@ type Notifier interface {
 	BookingSubmitted(b domain.Booking)
 	BookingConfirmed(b domain.Booking, ics string)
 	BookingDenied(b domain.Booking)
+	// BookingConditional tells the booker their request was approved subject to
+	// conditions, and what they must do. The message has to stand alone: it is
+	// the only place some residents will read the conditions.
+	BookingConditional(b domain.Booking)
 	BookingCancelled(b domain.Booking, ics string)
 	// BookingReminder nudges the booker before the date with the before-use
 	// instructions and access details.
@@ -35,6 +39,10 @@ func (LogNotifier) BookingSubmitted(b domain.Booking) {
 
 func (LogNotifier) BookingConfirmed(b domain.Booking, _ string) {
 	log.Printf("notify: booking %s confirmed → invite (.ics) sent to booker", b.ID)
+}
+
+func (LogNotifier) BookingConditional(b domain.Booking) {
+	log.Printf("notify: booking %s approved with conditions → booker asked to accept", b.ID)
 }
 
 func (LogNotifier) BookingDenied(b domain.Booking) {

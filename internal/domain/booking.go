@@ -6,10 +6,16 @@ import "time"
 type BookingStatus string
 
 const (
-	StatusPending   BookingStatus = "pending"   // awaiting staff approval
-	StatusConfirmed BookingStatus = "confirmed" // holds the slot for everyone
-	StatusDenied    BookingStatus = "denied"
-	StatusCancelled BookingStatus = "cancelled"
+	StatusPending BookingStatus = "pending" // awaiting staff approval
+	// StatusConditional is approved subject to conditions the resident has not
+	// met yet (§4.5): terms to accept, an added fee to pay, a document to
+	// upload. It is short of confirmed — but it still holds the slot, or the
+	// space would be sold out from under a resident who is busy satisfying the
+	// conditions staff set.
+	StatusConditional BookingStatus = "conditional"
+	StatusConfirmed   BookingStatus = "confirmed" // holds the slot for everyone
+	StatusDenied      BookingStatus = "denied"
+	StatusCancelled   BookingStatus = "cancelled"
 )
 
 // Booking is a reservation of a facility for a time window. Only Confirmed (and
@@ -38,12 +44,32 @@ type Booking struct {
 	Payment  *Payment        `gorm:"foreignKey:BookingID" json:"payment,omitempty"`
 	Waiver   *WaiverDocument `gorm:"foreignKey:BookingID" json:"waiver,omitempty"`
 
+	// Condition is the conditional-approval terms staff attached, if any (§4.5).
+	// Nil for an ordinary approval.
+	Condition *BookingCondition `gorm:"foreignKey:BookingID" json:"condition,omitempty"`
+
 	// ReminderSentAt marks when the pre-booking reminder was sent, so the
 	// scheduler sends it at most once. Nil until sent.
 	ReminderSentAt *time.Time `json:"reminderSentAt,omitempty"`
 }
 
+// ActiveStatuses are the statuses that hold a slot against everyone else.
+//
+// One source, because the same list is applied in Go (Active, below) and in SQL
+// by three separate queries — the booking transaction's locking read, the
+// facility calendar's window, and the availability check. If those drift, the
+// calendar offers slots that fail on submit, or worse, the lock query stops
+// seeing a booking that is really there and the slot double-books.
+func ActiveStatuses() []BookingStatus {
+	return []BookingStatus{StatusPending, StatusConditional, StatusConfirmed}
+}
+
 // Active reports whether this booking should block its slot against others.
 func (b Booking) Active() bool {
-	return b.Status == StatusPending || b.Status == StatusConfirmed
+	for _, s := range ActiveStatuses() {
+		if b.Status == s {
+			return true
+		}
+	}
+	return false
 }

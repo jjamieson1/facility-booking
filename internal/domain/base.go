@@ -40,6 +40,7 @@ func AllModels() []any {
 		&AvailabilityRule{},
 		&Blackout{},
 		&Booking{},
+		&BookingCondition{},
 		&Payment{},
 		&RefundObligation{},
 		&PaymentTransaction{},

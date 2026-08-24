@@ -16,6 +16,7 @@ type capturingNotifier struct{ opened []string }
 func (c *capturingNotifier) BookingSubmitted(domain.Booking)         {}
 func (c *capturingNotifier) BookingConfirmed(domain.Booking, string) {}
 func (c *capturingNotifier) BookingDenied(domain.Booking)            {}
+func (c *capturingNotifier) BookingConditional(domain.Booking)       {}
 func (c *capturingNotifier) BookingCancelled(domain.Booking, string) {}
 func (c *capturingNotifier) BookingReminder(domain.Booking, string)  {}
 func (c *capturingNotifier) WaitlistOpened(e domain.WaitlistEntry, _ string) {

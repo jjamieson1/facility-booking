@@ -17,6 +17,7 @@ type capturingNotifier struct{ reminded []string }
 func (c *capturingNotifier) BookingSubmitted(domain.Booking)         {}
 func (c *capturingNotifier) BookingConfirmed(domain.Booking, string) {}
 func (c *capturingNotifier) BookingDenied(domain.Booking)            {}
+func (c *capturingNotifier) BookingConditional(domain.Booking)       {}
 func (c *capturingNotifier) BookingCancelled(domain.Booking, string) {}
 func (c *capturingNotifier) BookingReminder(b domain.Booking, _ string) {
 	c.reminded = append(c.reminded, b.ID)

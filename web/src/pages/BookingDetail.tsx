@@ -59,6 +59,7 @@ export function BookingDetail() {
         )}
       </Card>
 
+      {b.status === "conditional" && <ConditionsCard booking={b} />}
       {rescheduling && <RescheduleCard booking={b} onDone={() => setRescheduling(false)} />}
       {b.facility?.requiresWaiver && <WaiverCard booking={b} />}
       {needsPayment && <PaymentCard booking={b} />}
@@ -75,6 +76,66 @@ export function BookingDetail() {
         </Card>
       )}
     </div>
+  );
+}
+
+// ConditionsCard shows a conditionally-approved booking's terms and exactly what
+// is still outstanding (§4.5).
+//
+// The list is the point. "Not confirmed yet" is not something a resident can
+// act on; "accept the terms, pay $50, upload proof of insurance" is. The slot is
+// held throughout, and saying so removes the reason to panic.
+function ConditionsCard({ booking }: { booking: Booking }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const { data: outstanding } = useQuery({
+    queryKey: ["conditions", booking.id],
+    queryFn: () => api.bookingConditions(booking.id),
+  });
+
+  const accept = useMutation({
+    mutationFn: () => api.acceptConditions(booking.id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["conditions", booking.id] });
+      void qc.invalidateQueries({ queryKey: ["booking", booking.id] });
+      void qc.invalidateQueries({ queryKey: ["myBookings"] });
+    },
+  });
+
+  const c = booking.condition;
+
+  return (
+    <Card className="space-y-4 p-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold">{t("booking.conditionsTitle")}</h3>
+        <Badge tone="amber">{t("booking.conditionsBadge")}</Badge>
+      </div>
+
+      <p className="text-sm text-slate-600">{t("booking.conditionsHeld")}</p>
+
+      {c?.terms && (
+        <div className="rounded-lg bg-slate-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("booking.conditionsTerms")}</p>
+          <p className="mt-1 text-sm text-slate-700">{c.terms}</p>
+        </div>
+      )}
+
+      <div>
+        <p className="mb-2 text-sm font-medium">{t("booking.conditionsOutstanding")}</p>
+        <ul className="space-y-1.5 text-sm">
+          {outstanding?.acceptTerms && <li className="text-amber-800">• {t("booking.outstandingTerms")}</li>}
+          {!!outstanding?.payCents && <li className="text-amber-800">• {t("booking.outstandingPay", { amount: formatFee(outstanding.payCents) })}</li>}
+          {outstanding?.uploadLabel && <li className="text-amber-800">• {t("booking.outstandingUpload", { label: outstanding.uploadLabel })}</li>}
+          {outstanding?.allSatisfied && <li className="text-green-700">• {t("booking.outstandingNone")}</li>}
+        </ul>
+      </div>
+
+      {outstanding?.acceptTerms && (
+        <Button disabled={accept.isPending} onClick={() => accept.mutate()}>
+          {accept.isPending ? t("booking.accepting") : t("booking.acceptConditions")}
+        </Button>
+      )}
+    </Card>
   );
 }
 
