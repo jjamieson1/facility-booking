@@ -191,6 +191,36 @@ answers 404.) In production, where the API is served under one origin, the deriv
 With no origin configured the app falls back to `LogNotifier`, which is what keeps it runnable
 without C2. The startup line reports which: `notify=c2` or `notify=log`.
 
+### Branding is a config change, and a test enforces that
+
+The brand lives in **three single sources**, one per layer, because no one layer can read the others:
+
+- **Palette** — CSS custom properties in `web/src/index.css` (`--brand-50` … `--brand-700`), which
+  `tailwind.config.js` resolves through `rgb(var(--brand-N) / <alpha-value>)`. The variables hold
+  **space-separated RGB channels, not hex**: without that, every `bg-brand-500/50` in the app
+  silently loses its opacity. All 87 `brand-*` usages and the whole reports dashboard resolve
+  through this, so a new hue changes every chart at once — which is the point, and the reason
+  FAC-20 must land before FAC-11's contrast audit.
+- **Name and mark (SPA)** — `web/src/lib/brand.ts`. `App` sets `document.title` from it, so
+  `index.html`'s `<title>` is only a pre-hydration fallback. The header tile is text, not an asset,
+  so it cannot 404; a municipality with a real logo replaces that one component.
+- **Name (API)** — `internal/brand`, set once at boot from `FB_BRAND_NAME` /
+  `FB_BRAND_SHORT_NAME`. Reaches residents through the `.ics` PRODID and feed filename, the C2
+  service card, and the waiver template. `brand.Short()` is the city alone ("the City of
+  Rivermont"), derived by dropping a *known* trailing service word — never simply the last word,
+  or every multi-word city name would lose half of itself.
+
+`internal/brand`'s **`TestDemoBrandLivesInExactlyOnePlace` fails the build** if the demo name
+reappears in Go code outside that package (tests, the seed and env-defaulted contact details are
+exempt; comments are ignored). Writing that test is what found the two leaks it now guards — the
+waiver template and the C2 service card both had the name hardcoded in resident-facing text.
+
+`FeedFilename` reduces the name to lowercase ASCII: it lands in a `Content-Disposition` header and
+then on a filesystem, so a quote or path separator surviving into it is header injection, not a
+cosmetic issue. Accents **transliterate** rather than drop (this app ships bilingual, so
+"Municipalité d'Été" → `municipalite-d-ete.ics`), and `/` is a word boundary so
+"Saint-Jean/Richelieu" does not merge into one word.
+
 ### Payments go through C2's payment broker too
 
 `internal/payment`'s `c2` module (FAC-2) bills through the **same partner API, origin and client

@@ -11,6 +11,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
 	"github.com/jjamieson1/facility-booking/internal/auth"
 	"github.com/jjamieson1/facility-booking/internal/booking"
+	"github.com/jjamieson1/facility-booking/internal/brand"
 	"github.com/jjamieson1/facility-booking/internal/c2"
 	"github.com/jjamieson1/facility-booking/internal/calendar"
 	"github.com/jjamieson1/facility-booking/internal/config"
@@ -68,6 +69,10 @@ func main() {
 	if partner.Configured() {
 		notifier = notify.NewC2Notifier(gdb, partner)
 	}
+	// The municipality's identity, set before anything can serve a calendar
+	// invite, a service card or a waiver template.
+	brand.Set(cfg.BrandName, cfg.BrandShortName)
+
 	auditRec := auditlog.New(cfg.AuditURL, cfg.AuditToken)
 
 	mediaStore, err := media.NewStore(cfg.DataDir)

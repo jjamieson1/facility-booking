@@ -64,6 +64,14 @@ type Config struct {
 	C2PaymentCallbackURL string
 	// PaymentCurrency is the ISO-4217 currency invoices are raised in.
 	PaymentCurrency string
+	// BrandName is the municipality's service name, stamped into the .ics PRODID
+	// and the feed filename. Must be set to match the SPA's own brand config
+	// (web/src/lib/brand.ts); empty keeps the demo identity.
+	BrandName string
+	// BrandShortName is the municipality alone ("Saint-Jean" for "Saint-Jean
+	// Spaces"), used in sentences that name the city rather than the service.
+	// Derived from BrandName when empty.
+	BrandShortName string
 
 	C2APIURL      string
 	C2ServiceUser string
@@ -124,6 +132,8 @@ func Load() Config {
 		C2ApplicationID:           getenv("FB_C2_APPLICATION_ID", ""),
 		C2PaymentCallbackURL:      getenv("FB_C2_PAYMENT_CALLBACK_URL", ""),
 		PaymentCurrency:           getenv("FB_PAYMENT_CURRENCY", "CAD"),
+		BrandName:                 getenv("FB_BRAND_NAME", ""),
+		BrandShortName:            getenv("FB_BRAND_SHORT_NAME", ""),
 		C2APIURL:                  strings.TrimRight(getenv("FB_C2_API_URL", ""), "/"),
 		C2ServiceUser:             getenv("FB_C2_SERVICE_USER", ""),
 		C2ServicePass:             getenv("FB_C2_SERVICE_PASS", ""),

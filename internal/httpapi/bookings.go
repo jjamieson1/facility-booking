@@ -447,7 +447,7 @@ func (h bookingHandler) feed(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "could not build feed")
 		return
 	}
-	writeICS(w, "rivermont.ics", calendar.Feed(bookings))
+	writeICS(w, calendar.FeedFilename(), calendar.Feed(bookings))
 }
 
 // inviteFor renders the invite body for notifications (best-effort).

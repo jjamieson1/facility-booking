@@ -1,5 +1,5 @@
 // Package servicecard builds the payload C2 (TrustIdentity) fetches for the
-// Rivermont Spaces service card. C2 makes a server-to-server GET, authenticated
+// facility-booking service card. C2 makes a server-to-server GET, authenticated
 // by a short-lived JWT, and renders the JSON we return — a per-citizen summary of
 // their upcoming bookings. See ServiceCardCallback.md for the wire contract.
 package servicecard
@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jjamieson1/facility-booking/internal/brand"
 	"time"
 
 	"gorm.io/gorm"
@@ -109,7 +110,7 @@ func (s *Service) StatusForSubject(ctx context.Context, subject string) (*Payloa
 // always-present Browse Facilities link.
 func (s *Service) build(upcoming []domain.Booking, waiting []domain.WaitlistEntry) *Payload {
 	p := &Payload{
-		Title:       "Your Rivermont bookings",
+		Title:       "Your " + brand.Short() + " bookings",
 		Description: describe(upcoming, waiting),
 		CTA:         s.appURL + "/my-bookings",
 		Contact:     &s.contact,
@@ -145,7 +146,7 @@ func (s *Service) build(upcoming []domain.Booking, waiting []domain.WaitlistEntr
 // waitlisted slots.
 func describe(upcoming []domain.Booking, waiting []domain.WaitlistEntry) string {
 	if len(upcoming) == 0 && len(waiting) == 0 {
-		return "You have no upcoming bookings. Browse Rivermont's facilities to reserve a space."
+		return "You have no upcoming bookings. Browse " + brand.Short() + "'s facilities to reserve a space."
 	}
 	sentence := bookingSentence(upcoming)
 	if w := waitSentence(waiting); w != "" {
@@ -181,7 +182,7 @@ func waitSentence(waiting []domain.WaitlistEntry) string {
 func (s *Service) browseTask() Task {
 	return Task{
 		Name:        "Browse Facilities",
-		Description: "Browse Rivermont's facilities, or find one free at a specific time.",
+		Description: "Browse " + brand.Short() + "'s facilities, or find one free at a specific time.",
 		URL:         s.appURL + "/",
 	}
 }

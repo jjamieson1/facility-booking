@@ -2,6 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* The brand token set (FAC-20). This block is the whole palette: every
+   `brand-*` class in the app resolves through it, so deploying for another
+   municipality means editing these five values and nothing else.
+
+   Channels are space-separated RGB rather than hex so Tailwind's
+   `<alpha-value>` works — `bg-brand-500/50` needs the channels separately.
+
+   Current values are the "Rivermont Spaces" demo identity: a calm municipal
+   blue-teal. Replace with the municipality's palette before FAC-11's contrast
+   audit, since auditing these and then swapping them invalidates the audit. */
+:root {
+  --brand-50: 238 247 249;
+  --brand-100: 214 236 240;
+  --brand-500: 42 127 142;
+  --brand-600: 35 107 120;
+  --brand-700: 29 87 99;
+
+  /* The blackout hatch, which is a pattern rather than a colour and so cannot
+     be a Tailwind token. Defined once here because it appeared twice, byte for
+     byte, in the calendar — the exact "scattered literal" FAC-20 is about. */
+  --blackout-hatch: repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 4px, #eef2f6 4px, #eef2f6 8px);
+  --blackout-hatch-sm: repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 3px, #eef2f6 3px, #eef2f6 6px);
+}
+
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

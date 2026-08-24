@@ -1,12 +1,26 @@
 /** @type {import('tailwindcss').Config} */
+
+// The brand palette resolves through CSS custom properties rather than being
+// baked into the build. Rebranding for another municipality is then an edit to
+// one `:root` block in index.css — or a stylesheet served per deployment — not
+// a rebuild and not a hunt through components (FAC-20).
+//
+// The variables hold space-separated RGB channels, not hex, because that is what
+// `<alpha-value>` needs: without it every `bg-brand-500/50` in the app would
+// silently stop applying its opacity.
+const brandVar = (name) => `rgb(var(--${name}) / <alpha-value>)`;
+
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       colors: {
-        // Rivermont brand: a calm municipal blue-teal.
         brand: {
-          50: "#eef7f9", 100: "#d6ecf0", 500: "#2a7f8e", 600: "#236b78", 700: "#1d5763",
+          50: brandVar("brand-50"),
+          100: brandVar("brand-100"),
+          500: brandVar("brand-500"),
+          600: brandVar("brand-600"),
+          700: brandVar("brand-700"),
         },
       },
     },
