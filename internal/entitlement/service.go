@@ -46,7 +46,13 @@ func (s *Service) Describe(t Type) (Descriptor, error) {
 	if !ok {
 		return Descriptor{}, ErrUnsupportedType
 	}
-	return p.Describe(t), nil
+	d := p.Describe(t)
+	// Non-nil so the proving form can iterate it without a null check; a nil
+	// slice serialises as `null` and throws in the browser.
+	if d.Fields == nil {
+		d.Fields = []Field{}
+	}
+	return d, nil
 }
 
 // Resolve determines every registered entitlement for a user.
@@ -57,9 +63,15 @@ func (s *Service) Describe(t Type) (Descriptor, error) {
 // concurrently, because generalising multiplies the number of callouts.
 func (s *Service) Resolve(ctx context.Context, user domain.User) Set {
 	var (
-		mu    sync.Mutex
-		set   Set
-		wg    sync.WaitGroup
+		mu sync.Mutex
+		// Initialised, not nil: a nil slice marshals to `null`, and a client
+		// doing `set.live.find(...)` on null throws. That blanked /my-bookings
+		// for every user with no entitlements — which, once residency became
+		// provider-determined, is nearly everyone. Same convention as
+		// RecurringResult and the facilities list.
+		set = Set{Live: []Determination{}, Notices: []Notice{}}
+		wg  sync.WaitGroup
+
 		types = s.registeredTypes()
 	)
 	for _, t := range types {

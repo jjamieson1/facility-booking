@@ -167,7 +167,10 @@ function ResidencyCard() {
 
   if (!user) return null;
 
-  const residency = ent?.live.find((d) => d.type === "residency");
+  // `?? []` is not redundant with `?.`: the optional chain guards `ent` being
+  // undefined, not `live` being null. A nil Go slice serialises as null, and
+  // calling .find on it threw here — blanking the whole app rather than one card.
+  const residency = (ent?.live ?? []).find((d) => d.type === "residency");
   if (residency) {
     return (
       <Card className="mb-6 flex flex-wrap items-center justify-between gap-2 p-4">
@@ -182,8 +185,8 @@ function ResidencyCard() {
     );
   }
 
-  const unavailable = ent?.notices.some((n) => n.type === "residency" && n.reason === "unavailable");
-  const required = descriptor?.fields.filter((f) => f.required) ?? [];
+  const unavailable = (ent?.notices ?? []).some((n) => n.type === "residency" && n.reason === "unavailable");
+  const required = (descriptor?.fields ?? []).filter((f) => f.required);
   const incomplete = required.some((f) => !(inputs[f.key] ?? "").trim());
 
   return (

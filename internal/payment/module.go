@@ -101,7 +101,9 @@ var modules = []Module{
 // Modules returns the registered payment modules for the admin form.
 func Modules() []Module {
 	out := make([]Module, len(modules))
-	copy(out, modules)
+	for i, m := range modules {
+		out[i] = withFields(m)
+	}
 	return out
 }
 
@@ -109,10 +111,20 @@ func Modules() []Module {
 func ModuleFor(k Kind) (Module, bool) {
 	for _, m := range modules {
 		if m.Kind == k {
-			return m, true
+			return withFields(m), true
 		}
 	}
 	return Module{}, false
+}
+
+// withFields guarantees Fields is non-nil — a nil slice serialises as `null`,
+// and the admin form calls .length on it. The mock gateway (the default) has no
+// configuration fields, so this is the common path.
+func withFields(m Module) Module {
+	if m.Fields == nil {
+		m.Fields = []Field{}
+	}
+	return m
 }
 
 // New constructs the Provider for a kind.

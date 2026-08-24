@@ -100,11 +100,11 @@ export function StaffCalendar() {
               ))}
             </div>
 
-            {(selected?.fields.length ?? 0) > 0 && (
+            {(selected?.fields ?? []).length > 0 && (
               <div className="mt-5 border-t border-slate-100 pt-5">
                 <h4 className="mb-3 text-sm font-semibold">{t("calendarSettings.configTitle", { name: selected?.name })}</h4>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {selected?.fields.map((f) => (
+                  {(selected?.fields ?? []).map((f) => (
                     <label key={f.key} className="text-sm">
                       <span className="mb-1 block text-slate-500">
                         {f.label}
