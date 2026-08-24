@@ -35,6 +35,7 @@ export interface User {
   role: Role;
   isResident: boolean;
   address?: string;
+  language?: "en" | "fr";   // preferred language for notifications
 }
 
 export interface Accessory {
@@ -418,6 +419,9 @@ export interface FacilityFilter {
 
 export const api = {
   me: () => get<User | null>("/auth/me"),
+  // Persist the language choice so notifications — sent from the server, days
+  // later, often to a different device — arrive in the language they picked.
+  setLanguage: (language: "en" | "fr") => put<{ language: string }>("/me/language", { language }),
   // Entitlements: submit evidence, never an outcome — the provider decides.
   entitlements: () => get<EntitlementSet>("/entitlements"),
   entitlementDescriptor: (type: EntitlementType) =>

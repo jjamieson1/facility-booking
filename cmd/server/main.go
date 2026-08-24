@@ -11,6 +11,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
 	"github.com/jjamieson1/facility-booking/internal/auth"
 	"github.com/jjamieson1/facility-booking/internal/booking"
+	"github.com/jjamieson1/facility-booking/internal/c2"
 	"github.com/jjamieson1/facility-booking/internal/calendar"
 	"github.com/jjamieson1/facility-booking/internal/config"
 	"github.com/jjamieson1/facility-booking/internal/db"
@@ -50,7 +51,21 @@ func main() {
 		log.Printf("startup: OIDC not configured — set FB_OIDC_* to enable login")
 	}
 
-	notifier := notify.NewLogNotifier()
+	// Notifications go through C2's partner API: C2 owns the citizen's inbox and
+	// their channel preferences, so this app sends one message and C2 fans it out
+	// to email/SMS on the channels they opted into (§4.10). With no partner
+	// origin configured the app falls back to logging, which is what keeps the
+	// demo runnable without C2.
+	partner := c2.New(c2.Config{
+		Origin:     cfg.C2PartnerOrigin,
+		ClientID:   cfg.OIDCClientID,
+		Secret:     cfg.OIDCClientSecret,
+		AppBaseURL: cfg.PublicAppURL,
+	})
+	var notifier notify.Notifier = notify.NewLogNotifier()
+	if partner.Configured() {
+		notifier = notify.NewC2Notifier(gdb, partner)
+	}
 	auditRec := auditlog.New(cfg.AuditURL, cfg.AuditToken)
 
 	mediaStore, err := media.NewStore(cfg.DataDir)
@@ -97,6 +112,7 @@ func main() {
 		Entitlements:    entitlementSvc,
 		PaymentSettings: paymentSettings,
 		Policy:          policySvc,
+		DB:              gdb,
 		ServiceCard:     servicecard.NewService(gdb, bookingSvc, waitlistSvc, cfg.PublicAppURL, cfg.Contact),
 		Notifier:        notifier,
 		Audit:           auditRec,
@@ -107,9 +123,17 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Printf("facility-booking API listening on %s (env=%s db=mariadb oidc=%v audit=%v)",
-		cfg.Addr, cfg.Env, cfg.OIDCEnabled(), cfg.AuditURL != "")
+	log.Printf("facility-booking API listening on %s (env=%s db=mariadb oidc=%v audit=%v notify=%s)",
+		cfg.Addr, cfg.Env, cfg.OIDCEnabled(), cfg.AuditURL != "", notifyMode(partner.Configured()))
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}
+}
+
+// notifyMode names where notifications go, for the startup line.
+func notifyMode(viaC2 bool) string {
+	if viaC2 {
+		return "c2"
+	}
+	return "log"
 }

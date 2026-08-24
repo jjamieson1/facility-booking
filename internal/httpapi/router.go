@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"gorm.io/gorm"
 
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
 	"github.com/jjamieson1/facility-booking/internal/auth"
@@ -41,6 +42,7 @@ type Deps struct {
 	Entitlements    *entitlement.Service
 	PaymentSettings *payment.SettingsService
 	Policy          *policy.Service
+	DB              *gorm.DB
 	ServiceCard     *servicecard.Service
 	Notifier        notify.Notifier
 	Audit           auditlog.Recorder
@@ -76,6 +78,7 @@ func New(d Deps) http.Handler {
 	ent := entitlementHandler{svc: d.Entitlements}
 	psh := paymentSettingsHandler{svc: d.PaymentSettings}
 	pol := policyHandler{policies: d.Policy, bookings: d.Booking}
+	langh := languageHandler{db: d.DB}
 	ah := authHandler{svc: d.Auth, appOrigin: d.Cfg.AppOrigin}
 
 	r.Route(d.Cfg.BasePath+"/api", func(api chi.Router) {
@@ -104,6 +107,7 @@ func New(d Deps) http.Handler {
 		api.Group(func(pr chi.Router) {
 			pr.Use(auth.RequireSession)
 			pr.Post("/bookings", bk.create)
+			pr.Put("/me/language", langh.setLanguage)
 			pr.Get("/bookings/mine", bk.mine)
 			pr.Get("/bookings/{id}", bk.get)
 			pr.Get("/bookings/{id}/invite.ics", bk.invite)

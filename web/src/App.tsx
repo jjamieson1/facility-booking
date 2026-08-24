@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./lib/auth";
+import { api } from "./lib/api";
 import { setLanguage } from "./lib/i18n";
 import { Button } from "./components/ui";
 import { FacilityList } from "./pages/FacilityList";
@@ -63,7 +64,7 @@ export default function App() {
           </nav>
 
           <div className="flex items-center gap-3">
-            <LangToggle current={i18n.language} />
+            <LangToggle current={i18n.language} user={user} />
             {loading ? null : user ? (
               <>
                 <span className="hidden text-sm text-slate-600 sm:inline">
@@ -220,7 +221,7 @@ function AdminMenu() {
 }
 
 // LangToggle switches between English and French (§4.11).
-function LangToggle({ current }: { current: string }) {
+function LangToggle({ current, user }: { current: string; user: unknown }) {
   const { t } = useTranslation();
   const lang = current?.startsWith("fr") ? "fr" : "en";
   const names: Record<string, string> = { en: "English", fr: "Français" };
@@ -234,7 +235,12 @@ function LangToggle({ current }: { current: string }) {
         <button
           key={l}
           type="button"
-          onClick={() => setLanguage(l)}
+          onClick={() => {
+            setLanguage(l);
+            // Anonymous visitors have nothing to store it against; the UI still
+            // switches, and it persists once they sign in and toggle again.
+            if (user) void api.setLanguage(l).catch(() => {});
+          }}
           aria-pressed={lang === l}
           aria-label={names[l]}
           className={`px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${lang === l ? "bg-brand-500 text-white" : "bg-white text-slate-600 hover:bg-slate-50"}`}

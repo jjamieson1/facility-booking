@@ -90,6 +90,57 @@ This is a **sales demo** ("Rivermont Spaces"), not a production municipal deploy
 still simulated: `internal/payment` has the module registry and admin form (FAC-2), but the Stripe
 module itself is registered `Available: false` and no real gateway is wired.
 
+### Notifications go through C2's partner API
+
+`internal/c2` is the client for C2's **partner API** (`{origin}/partner`) — the machine-to-machine
+surface, a sibling of `/api` (citizen sessions). `internal/notify.C2Notifier` uses it for every
+booking event. **The payment broker (FAC-2) is the same API, same origin, same client credentials,
+same consent gate — reuse this client, don't write a second one.**
+
+Three properties that shape the code:
+
+- **Consent-gated.** C2 sends nothing to a citizen who hasn't accepted this service's terms and
+  answers **403**. That is an expected outcome (`c2.ErrNoConsent`), not a failure: don't retry, and
+  note C2 audits denied attempts against our `client_id`.
+- **We don't choose channels.** C2 always creates the in-app notification and fans out to
+  email/SMS per the citizen's own preferences. We send one message with a `shortBody` for SMS —
+  which must stand alone, since someone may read only that.
+- **We send `sub`, never an email or name.** C2 resolves the person. A test asserts the request body
+  carries no personal identifiers.
+
+**Delivery is best-effort and must never disturb the thing it describes.** A failed notification
+does not roll back a booking — the booking is the record, the message is a courtesy. Every send path
+swallows its error into the log fallback.
+
+**Two consequences worth knowing.** C2 carries **no attachments**, so the `.ics` invite travels as a
+*link* to `/api/bookings/{id}/invite.ics` rather than a file. And **guests have no C2 identity**
+(`guest:<uuid>` subjects, FAC-24), so they are skipped — expected, not an error.
+
+**Language:** `User.Language` ("en"/"fr") is persisted via `PUT /api/me/language`, which the SPA's
+header toggle calls for signed-in users. The browser toggle alone is not enough: notifications are
+sent server-side, days later, often to another device. Templates live in `internal/notify/messages.go`
+— add both languages or the recipient gets English.
+
+**Staff routing is a placeholder.** "Needs approval" currently notifies every staff/admin account,
+capped at `maxStaffFanout`. FAC-27's per-facility approvers replaces this with the right recipients.
+
+**Set `FB_C2_PARTNER_ORIGIN` explicitly in dev — the derived default is wrong here.** It defaults to
+`FB_OIDC_BASE_URL` minus `/oidc`, which in this setup is C2's **Vite web origin** (`:5173`). Vite
+proxies `/oidc` and `/api` to C2's API but **not** `/partner`, so partner calls 404 against it. Use
+C2's API directly:
+
+```
+FB_C2_PARTNER_ORIGIN=http://localhost:8088
+```
+
+Unlike OIDC — where the issuer origin must match what the browser sees — partner calls are
+server-to-server and have no reason to traverse the browser proxy at all. (Probe to confirm: `:8088`
+answers **401** on `/partner/notifications`, i.e. the route exists and wants credentials; `:5173`
+answers 404.) In production, where the API is served under one origin, the derived default is right.
+
+With no origin configured the app falls back to `LogNotifier`, which is what keeps it runnable
+without C2. The startup line reports which: `notify=c2` or `notify=log`.
+
 ### Database: MariaDB only
 
 **MariaDB is the only supported database, in dev, test and production. There is no fallback.**
