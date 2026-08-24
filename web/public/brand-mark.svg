@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Rivermont Spaces">
+  <!-- The favicon, drawn rather than exported, so it carries no binary asset and
+       rebrands by editing two values: the fill and the letter. It intentionally
+       mirrors the header tile in App.tsx — same rounded square, same mark.
+       The fill is the literal brand-500 value; a favicon is loaded by the
+       browser outside the page, so it cannot read the CSS custom property. -->
+  <rect width="32" height="32" rx="7" fill="#2a7f8e" />
+  <text x="16" y="22" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="18" font-weight="700" fill="#ffffff">R</text>
+</svg>

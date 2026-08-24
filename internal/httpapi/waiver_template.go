@@ -3,6 +3,7 @@ package httpapi
 import (
 	"bytes"
 	"fmt"
+	"github.com/jjamieson1/facility-booking/internal/brand"
 	"net/http"
 	"strings"
 )
@@ -24,7 +25,7 @@ var waiverLines = []waiverLine{
 	{11, "undertaken at my own risk. On behalf of myself and all participants in"},
 	{11, "my booking, I agree to the following:"},
 	{11, ""},
-	{11, "1. I release the City of Rivermont, its staff and agents from liability"},
+	{11, "1. I release the City of " + brand.Short() + ", its staff and agents from liability"},
 	{11, "   for any injury, loss, or damage arising from use of the facility,"},
 	{11, "   except where caused by the City's gross negligence."},
 	{11, "2. I confirm that appropriate insurance is in place where required for"},

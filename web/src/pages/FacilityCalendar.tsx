@@ -185,7 +185,7 @@ function SlotCell({ day, rowIdx, past, onOpen, openLabel }: { day: CalendarDay; 
   const slot = day.slots[rowIdx];
   const clickable = slot.status === "open" && !past;
   const blackoutStyle = slot.status === "blackout"
-    ? { backgroundImage: "repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 4px, #eef2f6 4px, #eef2f6 8px)" }
+    ? { backgroundImage: "var(--blackout-hatch)" }
     : undefined;
 
   if (clickable) {
@@ -249,7 +249,7 @@ function Legend() {
     <div className="flex items-center gap-4 text-xs text-slate-600">
       <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-sm border border-slate-300 bg-slate-100" />{t("calendar.open")}</span>
       <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-sm bg-red-500" />{t("calendar.booked")}</span>
-      <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(45deg, #cbd5e1, #cbd5e1 3px, #eef2f6 3px, #eef2f6 6px)" }} />{t("calendar.blackout")}</span>
+      <span className="flex items-center gap-1.5"><span className="h-3.5 w-3.5 rounded-sm" style={{ backgroundImage: "var(--blackout-hatch-sm)" }} />{t("calendar.blackout")}</span>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "./lib/auth";
+import { brand, documentTitle } from "./lib/brand";
 import { api } from "./lib/api";
 import { setLanguage } from "./lib/i18n";
 import { Button } from "./components/ui";
@@ -28,9 +29,18 @@ import { StaffCalendar } from "./pages/StaffCalendar";
 import { StaffPaymentSettings } from "./pages/StaffPaymentSettings";
 import { Spinner } from "./components/ui";
 
+// The tab title comes from the brand config, so index.html's copy is only the
+// pre-hydration fallback and never a second place to edit.
+function useBrandTitle() {
+  useEffect(() => {
+    document.title = documentTitle();
+  }, []);
+}
+
 export default function App() {
   const { user, isStaff, login, logout, loading } = useAuth();
   const { t, i18n } = useTranslation();
+  useBrandTitle();
 
   return (
     <div className="min-h-screen">
@@ -47,9 +57,9 @@ export default function App() {
               aria-hidden="true"
               className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500 text-sm font-bold text-white"
             >
-              R
+              {brand.mark}
             </span>
-            <span className="text-lg font-semibold">Rivermont Spaces</span>
+            <span className="text-lg font-semibold">{brand.name}</span>
           </Link>
 
           <nav
