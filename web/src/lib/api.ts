@@ -68,6 +68,7 @@ export interface Facility {
   nonResidentFeeCents: number;
   depositCents: number;
   location: string;
+  area: string;
   imageUrl: string;
   latitude: number;
   longitude: number;
@@ -277,6 +278,7 @@ export interface FacilityInput {
   nonResidentFeeCents: number;
   depositCents: number;
   location: string;
+  area: string;
   imageUrl: string;
   latitude: number;
   longitude: number;
@@ -440,11 +442,26 @@ export interface CalendarSettingsResponse {
 export interface FacilityFilter {
   minCapacity?: number;
   free?: boolean;
-  accessory?: string;
+  accessories?: string[];   // all must be present, not any (§4.3)
+  area?: string;
+  stepFree?: boolean;
+  accessibleWashroom?: boolean;
+  maxFeeCents?: number;
   date?: string;  // YYYY-MM-DD — with start+end, restricts to facilities free then
   start?: string; // HH:MM
   end?: string;   // HH:MM
 }
+
+// FacilityFilterOptions is the vocabulary the filter panel offers: the areas
+// facilities are actually placed in and the accessories they actually have.
+export interface FacilityFilterOptions {
+  areas: string[];
+  accessories: string[];
+}
+
+// Note there is no `resident` field. The cost filter prices against what the
+// signed-in viewer would actually pay, and the server resolves that from the
+// session — a client-supplied flag would hand anyone the resident rate.
 
 // --- api --------------------------------------------------------------------
 
@@ -473,7 +490,13 @@ export const api = {
     const q = new URLSearchParams();
     if (f.minCapacity) q.set("minCapacity", String(f.minCapacity));
     if (f.free) q.set("free", "true");
-    if (f.accessory) q.set("accessory", f.accessory);
+    // Repeated rather than comma-joined, so an accessory whose name contains a
+    // comma still round-trips.
+    for (const a of f.accessories ?? []) q.append("accessory", a);
+    if (f.area) q.set("area", f.area);
+    if (f.stepFree) q.set("stepFree", "true");
+    if (f.accessibleWashroom) q.set("accessibleWashroom", "true");
+    if (f.maxFeeCents) q.set("maxFee", String(f.maxFeeCents));
     if (f.date && f.start && f.end) {
       q.set("date", f.date);
       q.set("start", f.start);
@@ -482,6 +505,7 @@ export const api = {
     const qs = q.toString();
     return get<Facility[]>(`/facilities${qs ? `?${qs}` : ""}`);
   },
+  facilityFilterOptions: () => get<FacilityFilterOptions>("/facilities/filter-options"),
   getFacility: (id: string) => get<FacilityDetail>(`/facilities/${id}`),
   facilityTranslations: (id: string) => get<FacilityTranslation[]>(`/staff/facilities/${id}/translations`),
   saveFacilityTranslation: (id: string, t: Omit<FacilityTranslation, "facilityId">) =>

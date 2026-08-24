@@ -68,6 +68,7 @@ var routeAccess = map[string]access{
 	// Public directory, availability, and the city calendar feed (§4.11 —
 	// deliberately readable without an account, to reduce enquiries).
 	"GET /api/facilities":                          accessPublic,
+	"GET /api/facilities/filter-options":           accessPublic,
 	"GET /api/facilities/{id}":                     accessPublic,
 	"GET /api/facilities/{id}/availability":        accessPublic,
 	"GET /api/facilities/{id}/calendar":            accessPublic,

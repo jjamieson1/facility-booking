@@ -5,6 +5,7 @@ package facility
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -22,11 +23,49 @@ type Service struct{ db *gorm.DB }
 // NewService constructs the facility service.
 func NewService(db *gorm.DB) *Service { return &Service{db: db} }
 
-// Filter narrows a directory query. Zero values mean "no constraint".
+// Filter narrows a directory query, covering the five parameters §4.3 requires:
+// capacity, required accessories, cost, area, and accessibility needs. Zero
+// values mean "no constraint", and every constraint present is ANDed — §4.3 is
+// explicit that filters combine and all must match.
 type Filter struct {
 	MinCapacity int
 	FreeOnly    bool
-	Accessory   string // accessory name that must be present
+
+	// Accessories must *all* be present, not any. A resident who ticks both
+	// "projector" and "sound system" needs one room with both; offering rooms
+	// with either would hand them a list they then have to re-check by hand.
+	Accessories []string
+
+	Area string // neighbourhood/zone, matched exactly against Facility.Area
+
+	// Accessibility needs. Only the true case constrains: someone who has not
+	// asked for step-free access should still see step-free facilities.
+	StepFree           bool
+	AccessibleWashroom bool
+
+	// Cost range in cents. MaxFeeCents == 0 means no ceiling rather than "free
+	// only" — FreeOnly already expresses that, and a $0 ceiling arriving from an
+	// untouched form field would otherwise silently hide every priced facility.
+	MinFeeCents int
+	MaxFeeCents int
+
+	// Resident selects which of the two price columns the cost range applies to.
+	// It is resolved from the session by the handler, never taken from the
+	// request: residency is an entitlement, and a filter that priced off a
+	// client-supplied flag would quote the resident rate to anyone who asked.
+	Resident bool
+}
+
+// feeColumn is the price expression the cost filter compares against — the fee
+// this viewer would actually be charged. It mirrors domain.Facility.FeeFor,
+// including its rule that a facility with no non-resident fee set charges
+// everyone the base fee; the two must agree or the directory filters on one
+// number and displays another.
+func (f Filter) feeColumn() string {
+	if f.Resident {
+		return "fee_cents"
+	}
+	return "CASE WHEN non_resident_fee_cents > 0 THEN non_resident_fee_cents ELSE fee_cents END"
 }
 
 // List returns facilities matching the filter, with accessories preloaded.
@@ -38,12 +77,88 @@ func (s *Service) List(ctx context.Context, f Filter) ([]domain.Facility, error)
 	if f.FreeOnly {
 		q = q.Where("fee_cents = 0")
 	}
-	if f.Accessory != "" {
+	if f.Area != "" {
+		q = q.Where("area = ?", f.Area)
+	}
+	if f.StepFree {
+		q = q.Where("step_free_access = ?", true)
+	}
+	if f.AccessibleWashroom {
+		q = q.Where("accessible_washroom = ?", true)
+	}
+	if f.MinFeeCents > 0 {
+		q = q.Where(f.feeColumn()+" >= ?", f.MinFeeCents)
+	}
+	if f.MaxFeeCents > 0 {
+		q = q.Where(f.feeColumn()+" <= ?", f.MaxFeeCents)
+	}
+	if names := dedupe(f.Accessories); len(names) > 0 {
+		// COUNT(DISTINCT a.name) = len(names) is what makes this "all of", not
+		// "any of": a facility listing the same accessory twice cannot satisfy
+		// two requirements, and one listing only some of them falls short.
 		q = q.Where(`id IN (SELECT fa.facility_id FROM facility_accessories fa
-			JOIN accessories a ON a.id = fa.accessory_id WHERE a.name = ?)`, f.Accessory)
+			JOIN accessories a ON a.id = fa.accessory_id
+			WHERE a.name IN (?)
+			GROUP BY fa.facility_id
+			HAVING COUNT(DISTINCT a.name) = ?)`, names, len(names))
 	}
 	var out []domain.Facility
 	err := q.Order("name asc").Find(&out).Error
+	return out, err
+}
+
+// dedupe drops blanks and repeats from a filter's accessory list. A repeat would
+// inflate the HAVING count above what any facility could reach, turning a
+// duplicated checkbox into an empty result set.
+func dedupe(in []string) []string {
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			continue
+		}
+		if _, dup := seen[v]; dup {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// FilterOptions is the vocabulary the §4.3 filter panel offers.
+//
+// Both lists are initialised, never nil: a nil Go slice marshals to `null`, and
+// a client mapping over null throws. That exact mistake blanked a page once
+// already (FAC-42).
+type FilterOptions struct {
+	Areas       []string `json:"areas"`
+	Accessories []string `json:"accessories"`
+}
+
+// FilterOptions lists the areas and accessories worth offering, so the panel
+// presents real choices rather than free-text boxes that match only on a lucky
+// guess.
+//
+// Deliberately computed from the whole directory rather than from the current
+// result set: options that vanish as you filter leave you unable to undo the
+// choice that removed them.
+func (s *Service) FilterOptions(ctx context.Context) (FilterOptions, error) {
+	out := FilterOptions{Areas: []string{}, Accessories: []string{}}
+	// Unset areas contribute no option — an empty entry would filter to nothing.
+	if err := s.db.WithContext(ctx).Model(&domain.Facility{}).
+		Where("area <> ?", "").
+		Distinct().Order("area asc").
+		Pluck("area", &out.Areas).Error; err != nil {
+		return out, err
+	}
+	// Only accessories some facility actually offers; the rest would be dead
+	// checkboxes that always return nothing.
+	err := s.db.WithContext(ctx).Model(&domain.Accessory{}).
+		Where("id IN (SELECT accessory_id FROM facility_accessories)").
+		Distinct().Order("name asc").
+		Pluck("name", &out.Accessories).Error
 	return out, err
 }
 

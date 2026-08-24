@@ -5,16 +5,22 @@ package domain
 // belong to a building (e.g. a room within a community centre).
 type Facility struct {
 	Base
-	Name                string  `gorm:"type:varchar(200);index" json:"name"`
-	Description         string  `gorm:"type:text" json:"description"`
-	Capacity            int     `json:"capacity"`
-	FeeCents            int     `json:"feeCents"`            // per-booking fee for residents; 0 = free
-	NonResidentFeeCents int     `json:"nonResidentFeeCents"` // fee for non-residents; 0 = same as FeeCents
-	DepositCents        int     `json:"depositCents"`        // refundable hold; 0 = none
-	Location            string  `gorm:"type:varchar(300)" json:"location"`
-	ImageURL            string  `gorm:"type:varchar(500)" json:"imageUrl"`
-	Latitude            float64 `json:"latitude"` // for the map view (§4.11); 0 = not placed
-	Longitude           float64 `json:"longitude"`
+	Name                string `gorm:"type:varchar(200);index" json:"name"`
+	Description         string `gorm:"type:text" json:"description"`
+	Capacity            int    `json:"capacity"`
+	FeeCents            int    `json:"feeCents"`            // per-booking fee for residents; 0 = free
+	NonResidentFeeCents int    `json:"nonResidentFeeCents"` // fee for non-residents; 0 = same as FeeCents
+	DepositCents        int    `json:"depositCents"`        // refundable hold; 0 = none
+	Location            string `gorm:"type:varchar(300)" json:"location"`
+	// Area is the neighbourhood/zone used by the §4.3 area filter. Location is a
+	// free-text street address, which cannot be filtered on meaningfully — a
+	// resident looking for "somewhere in the north end" is not going to type a
+	// postal address. Kept separate rather than parsed out of Location so staff
+	// control the vocabulary the filter offers.
+	Area      string  `gorm:"type:varchar(120);index" json:"area"`
+	ImageURL  string  `gorm:"type:varchar(500)" json:"imageUrl"`
+	Latitude  float64 `json:"latitude"` // for the map view (§4.11); 0 = not placed
+	Longitude float64 `json:"longitude"`
 
 	ParentID *string   `gorm:"type:varchar(36);index" json:"parentId,omitempty"`
 	Parent   *Facility `gorm:"foreignKey:ParentID" json:"-"`
