@@ -78,8 +78,11 @@ var routeAccess = map[string]access{
 
 	// A booker acting on their own booking. Guests included: the handler's
 	// ownership check is what protects the data.
-	"POST /api/bookings":                  accessSession,
-	"GET /api/bookings/mine":              accessSession,
+	"POST /api/bookings":     accessSession,
+	"GET /api/bookings/mine": accessSession,
+	// A guest holds a language preference too: it is about how we speak to them,
+	// not about durable identity.
+	"PUT /api/me/language":                accessSession,
 	"GET /api/bookings/{id}":              accessSession,
 	"GET /api/bookings/{id}/invite.ics":   accessSession,
 	"POST /api/bookings/{id}/cancel":      accessSession,
@@ -164,6 +167,7 @@ func fullTestServer(t *testing.T) (http.Handler, *auth.Service, *gorm.DB) {
 			entitlement.NewRollProvider([]string{"Willow Lane"}, time.Hour)),
 		PaymentSettings: payment.NewSettingsService(db, audit),
 		Policy:          policy.NewService(db),
+		DB:              db,
 		Notifier:        notifier,
 		Audit:           audit,
 	}), authSvc, db

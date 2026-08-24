@@ -44,10 +44,17 @@ func (u User) IsGuest() bool { return u.Role == RoleGuest }
 // and is the stable link back to C2; no passwords are ever stored here.
 type User struct {
 	Base
-	Subject    string `gorm:"type:varchar(255);uniqueIndex" json:"-"`
-	Email      string `gorm:"type:varchar(255);index" json:"email"`
-	Name       string `gorm:"type:varchar(255)" json:"name"`
-	Role       Role   `gorm:"type:varchar(20);default:resident" json:"role"`
+	Subject string `gorm:"type:varchar(255);uniqueIndex" json:"-"`
+	Email   string `gorm:"type:varchar(255);index" json:"email"`
+	Name    string `gorm:"type:varchar(255)" json:"name"`
+	Role    Role   `gorm:"type:varchar(20);default:resident" json:"role"`
+	// Language is the citizen's preferred language for notifications ("en" or
+	// "fr"). Canada requires both official languages (§4.11), and a notification
+	// is the one place the app speaks to someone outside the UI — where the
+	// header toggle cannot help. Set from the SPA's language toggle; defaults to
+	// English when never set.
+	Language string `gorm:"type:varchar(5);default:en" json:"language"`
+
 	IsResident bool   `json:"isResident"`                                 // verified municipal resident (drives resident pricing)
 	Address    string `gorm:"type:varchar(300)" json:"address,omitempty"` // captured during residency verification
 }

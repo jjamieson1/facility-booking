@@ -46,6 +46,12 @@ type Config struct {
 	// C2 admin-API lookup: C2 releases only `sub` over OIDC, so we fetch the
 	// user's name/email from C2's identity API by subject at login. These are the
 	// service credentials for that read-only lookup. Empty C2APIURL disables it.
+	// C2PartnerOrigin is the C2 origin hosting the partner API ({origin}/partner)
+	// — notifications today, the payment broker next. Defaults to the OIDC base
+	// URL with a trailing "/oidc" trimmed, since the partner surface is a sibling
+	// of the OIDC endpoints; set it explicitly when that guess is wrong.
+	C2PartnerOrigin string
+
 	C2APIURL      string
 	C2ServiceUser string
 	C2ServicePass string
@@ -101,6 +107,7 @@ func Load() Config {
 		// origin with a trailing slash.
 		OIDCPostLogoutRedirectURL: getenv("FB_OIDC_POST_LOGOUT_REDIRECT_URL", appOrigin+"/"),
 		AdminEmails:               splitList(getenv("FB_ADMIN_EMAILS", "admin@c2.local")),
+		C2PartnerOrigin:           getenv("FB_C2_PARTNER_ORIGIN", partnerOriginFrom(getenv("FB_OIDC_BASE_URL", ""))),
 		C2APIURL:                  strings.TrimRight(getenv("FB_C2_API_URL", ""), "/"),
 		C2ServiceUser:             getenv("FB_C2_SERVICE_USER", ""),
 		C2ServicePass:             getenv("FB_C2_SERVICE_PASS", ""),
@@ -128,6 +135,18 @@ func splitList(v string) []string {
 		}
 	}
 	return out
+}
+
+// partnerOriginFrom derives the C2 origin from the OIDC base URL. C2 mounts the
+// partner API at {origin}/partner, a sibling of {origin}/oidc, so trimming the
+// OIDC suffix gets there. Returns "" for an empty input, which leaves partner
+// calls disabled rather than pointed somewhere arbitrary.
+func partnerOriginFrom(oidcBaseURL string) string {
+	base := strings.TrimRight(strings.TrimSpace(oidcBaseURL), "/")
+	if base == "" {
+		return ""
+	}
+	return strings.TrimSuffix(base, "/oidc")
 }
 
 func (c Config) IsProd() bool { return c.Env == "prod" }
