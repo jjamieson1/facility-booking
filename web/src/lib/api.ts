@@ -4,6 +4,21 @@
 
 const BASE = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "");
 
+// currentLang reads the language the UI is showing. Sent on every request so
+// facility CONTENT matches the surrounding chrome — a French page wrapped around
+// English facility text is the exact half-translated result §4.11 rules out.
+// Read from localStorage rather than importing i18n to keep this module free of
+// that dependency.
+function currentLang(): string {
+  if (typeof localStorage === "undefined") return "en";
+  return localStorage.getItem("lang")?.startsWith("fr") ? "fr" : "en";
+}
+
+// withLang appends ?lang= without disturbing an existing query string.
+function withLang(path: string): string {
+  return path + (path.includes("?") ? "&" : "?") + "lang=" + currentLang();
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${BASE}/api${path}`, {
     method,
@@ -19,7 +34,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return res.json() as Promise<T>;
 }
 
-const get = <T>(p: string) => request<T>("GET", p);
+const get = <T>(p: string) => request<T>("GET", withLang(p));
 const post = <T>(p: string, body?: unknown) => request<T>("POST", p, body);
 const put = <T>(p: string, body?: unknown) => request<T>("PUT", p, body);
 const del = (p: string) => request<void>("DELETE", p);
@@ -66,6 +81,22 @@ export interface Facility {
   beforeInstructions: string;
   afterInstructions: string;
   accessories?: Accessory[];
+}
+
+// A facility as served, plus which fields fell back to the default language.
+export interface FacilityDetail extends Facility {
+  language: "en" | "fr";
+  untranslated?: string[];
+}
+
+// One language's text for a facility, for the staff editor's tabs.
+export interface FacilityTranslation {
+  facilityId: string;
+  language: "en" | "fr";
+  name: string;
+  description: string;
+  beforeInstructions: string;
+  afterInstructions: string;
 }
 
 export type SlotStatus = "open" | "booked" | "blackout" | "closed";
@@ -451,7 +482,10 @@ export const api = {
     const qs = q.toString();
     return get<Facility[]>(`/facilities${qs ? `?${qs}` : ""}`);
   },
-  getFacility: (id: string) => get<Facility>(`/facilities/${id}`),
+  getFacility: (id: string) => get<FacilityDetail>(`/facilities/${id}`),
+  facilityTranslations: (id: string) => get<FacilityTranslation[]>(`/staff/facilities/${id}/translations`),
+  saveFacilityTranslation: (id: string, t: Omit<FacilityTranslation, "facilityId">) =>
+    put<FacilityTranslation[]>(`/staff/facilities/${id}/translations`, t),
   availability: (id: string, date: string) => get<Slot[]>(`/facilities/${id}/availability?date=${date}`),
   facilityCalendar: (id: string, from: string, days?: number) =>
     get<FacilityCalendar>(`/facilities/${id}/calendar?from=${from}${days ? `&days=${days}` : ""}`),

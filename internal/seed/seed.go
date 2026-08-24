@@ -18,6 +18,135 @@ import (
 // lighter demo.
 const historyBookings = 600
 
+// frenchContent is the French text for the seeded facilities and accessories,
+// keyed by the English name.
+//
+// Real translated content, not "[FR] " prefixes: the point of the demo is to
+// show a francophone resident a French page, and placeholder text would hide
+// exactly the layout problems (longer strings, different word order) that
+// bilingual copy causes.
+var frenchContent = map[string]domain.FacilityTranslation{
+	"Rivermont Community Hall": {
+		Name:               "Salle communautaire de Rivermont",
+		Description:        "Grande salle pour mariages, marchés et événements communautaires, avec cuisine attenante.",
+		BeforeInstructions: "Récupérez les clés à la réception. Les tables sont empilées dans le placard arrière.",
+		AfterInstructions:  "Empilez les chaises, essuyez les tables, sortez les déchets et verrouillez toutes les portes.",
+	},
+	"Community Hall — North Half": {
+		Name:               "Salle communautaire — moitié nord",
+		Description:        "Moitié de la salle communautaire, séparée par la cloison mobile. Réserver la salle entière réserve aussi celle-ci.",
+		BeforeInstructions: "La cloison est tirée par le personnel avant votre créneau — confirmez à la réception.",
+		AfterInstructions:  "Empilez les chaises contre la cloison et essuyez les tables.",
+	},
+	"Community Hall — South Half": {
+		Name:               "Salle communautaire — moitié sud",
+		Description:        "Moitié de la salle communautaire, avec la cuisine attenante. Réserver la salle entière réserve aussi celle-ci.",
+		BeforeInstructions: "Les clés de la cuisine se récupèrent à la réception avec celles de la salle.",
+		AfterInstructions:  "Videz le réfrigérateur, lancez le lave-vaisselle et sortez les déchets.",
+	},
+	"Rivermont Ice Arena": {
+		Name:               "Aréna de Rivermont",
+		Description:        "Patinoire pleine grandeur pour le hockey, le patinage et les tournois.",
+		BeforeInstructions: "Présentez-vous au bureau de l'aréna; des aides au patinage sont disponibles sur demande.",
+		AfterInstructions:  "Dégagez la glace et les bancs; signalez tout dommage à la surface.",
+	},
+	"Cedar Playing Field": {
+		Name:               "Terrain de Cedar",
+		Description:        "Terrain de sport pleine grandeur pour le soccer et les jeux communautaires. Réservation gratuite.",
+		BeforeInstructions: "Les barrières ouvrent 15 minutes avant votre créneau.",
+		AfterInstructions:  "Retirez tout l'équipement et les déchets; aucun véhicule sur le gazon.",
+	},
+	"Willow Park Pavilion": {
+		Name:               "Pavillon du parc Willow",
+		Description:        "Pavillon couvert du parc pour pique-niques, anniversaires et rassemblements.",
+		BeforeInstructions: "Des tables de pique-nique sont sur place. Les prises se trouvent près du poteau nord.",
+		AfterInstructions:  "Ensachez tous les déchets et déposez-les dans les bacs du parc.",
+	},
+	"Assembly Room": {
+		Name:               "Salle d'assemblée",
+		Description:        "Salle d'assemblée en gradins pour conférences, assemblées générales et présentations.",
+		BeforeInstructions: "La régie audiovisuelle est au fond; le code d'accès est envoyé le matin même.",
+		AfterInstructions:  "Éteignez la régie audiovisuelle et remettez les chaises en rangées.",
+	},
+	"Maple Meeting Room": {
+		Name:               "Salle de réunion Maple",
+		Description:        "Salle de conseil lumineuse pour réunions et ateliers.",
+		BeforeInstructions: "Le code d'accès est envoyé par courriel le matin de votre réservation.",
+		AfterInstructions:  "Remettez la salle dans sa disposition habituelle et éteignez l'écran.",
+	},
+	"Dance Studio": {
+		Name:               "Studio de danse",
+		Description:        "Studio avec miroirs et plancher flottant pour la danse, le yoga et les cours de conditionnement.",
+		BeforeInstructions: "Chaussures d'intérieur seulement. Les haut-parleurs se connectent par Bluetooth.",
+		AfterInstructions:  "Essuyez les miroirs et les barres; empilez les tapis utilisés.",
+	},
+}
+
+// frenchAccessories translates the accessory vocabulary shown on every facility.
+var frenchAccessories = map[string]string{
+	"Projector":      "Projecteur",
+	"Screen":         "Écran",
+	"Sound system":   "Système de son",
+	"Wi-Fi":          "Wi-Fi",
+	"Chairs":         "Chaises",
+	"Tables":         "Tables",
+	"Kitchen":        "Cuisine",
+	"Coffee maker":   "Cafetière",
+	"Ice resurfacer": "Surfaceuse",
+}
+
+// seedTranslations writes the French content for anything that has none.
+// Idempotent and additive: it never overwrites a translation staff have edited.
+func seedTranslations(tx *gorm.DB) error {
+	var facilities []domain.Facility
+	if err := tx.Find(&facilities).Error; err != nil {
+		return err
+	}
+	for _, f := range facilities {
+		fr, ok := frenchContent[f.Name]
+		if !ok {
+			continue // a facility staff added; nothing to seed
+		}
+		var existing int64
+		if err := tx.Model(&domain.FacilityTranslation{}).
+			Where("facility_id = ? AND language = ?", f.ID, domain.LangFR).Count(&existing).Error; err != nil {
+			return err
+		}
+		if existing > 0 {
+			continue
+		}
+		fr.FacilityID, fr.Language = f.ID, domain.LangFR
+		if err := tx.Create(&fr).Error; err != nil {
+			return err
+		}
+	}
+
+	var accessories []domain.Accessory
+	if err := tx.Find(&accessories).Error; err != nil {
+		return err
+	}
+	for _, a := range accessories {
+		name, ok := frenchAccessories[a.Name]
+		if !ok {
+			continue
+		}
+		var existing int64
+		if err := tx.Model(&domain.AccessoryTranslation{}).
+			Where("accessory_id = ? AND language = ?", a.ID, domain.LangFR).Count(&existing).Error; err != nil {
+			return err
+		}
+		if existing > 0 {
+			continue
+		}
+		if err := tx.Create(&domain.AccessoryTranslation{
+			AccessoryID: a.ID, Language: domain.LangFR, Name: name,
+		}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // seedCancellationPolicy writes the municipality-wide default (§4.7). Seeded
 // rather than left to policy.DefaultPolicy() so staff can see and edit the terms
 // in the back-office instead of discovering them in code — a policy nobody can
@@ -87,10 +216,17 @@ func Run(db *gorm.DB) error {
 	if err := db.Model(&domain.Facility{}).Count(&count).Error; err != nil {
 		return err
 	}
-	if count > 0 {
-		return nil
+	if count == 0 {
+		if err := db.Transaction(seed); err != nil {
+			return err
+		}
 	}
-	return db.Transaction(seed)
+
+	// AFTER the facilities exist, or a fresh database would boot with no French
+	// content and only acquire it on the next restart. Runs every boot and fills
+	// only gaps, so a deployment seeded before translations existed gets them,
+	// and text staff have edited is never overwritten.
+	return db.Transaction(seedTranslations)
 }
 
 // facilitySpec bundles a facility with its accessories and a popularity weight

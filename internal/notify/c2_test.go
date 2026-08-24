@@ -243,3 +243,53 @@ func TestEveryMessageHasAUsefulShortForm(t *testing.T) {
 		}
 	}
 }
+
+// AC: a French-preferring recipient gets French facility content, not French
+// wording wrapped around an English facility name.
+func TestNotificationUsesTranslatedFacilityName(t *testing.T) {
+	n, cap, db := newNotifier(t)
+	u := mkUser(t, db, domain.RoleResident, "fr")
+	b := mkBooking(t, db, u)
+	db.Create(&domain.FacilityTranslation{
+		FacilityID: b.FacilityID, Language: domain.LangFR, Name: "Salle de Rivermont",
+	})
+
+	n.BookingConfirmed(b, "")
+	sent := cap.all()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d, want 1", len(sent))
+	}
+	if !strings.Contains(sent[0].Body, "Salle de Rivermont") {
+		t.Errorf("body uses the English facility name: %q", sent[0].Body)
+	}
+	if strings.Contains(sent[0].Body, "Rivermont Hall") {
+		t.Errorf("body still contains the English name: %q", sent[0].Body)
+	}
+}
+
+// Translating for one recipient must not corrupt the booking for the next: two
+// staff in different languages each get their own.
+func TestTranslationDoesNotLeakBetweenRecipients(t *testing.T) {
+	n, cap, db := newNotifier(t)
+	booker := mkUser(t, db, domain.RoleResident, "en")
+	mkUser(t, db, domain.RoleStaff, "fr")
+	b := mkBooking(t, db, booker)
+	db.Create(&domain.FacilityTranslation{
+		FacilityID: b.FacilityID, Language: domain.LangFR, Name: "Salle de Rivermont",
+	})
+
+	n.BookingSubmitted(b)
+
+	var sawEnglish, sawFrench bool
+	for _, s := range cap.all() {
+		if strings.Contains(s.Body, "Rivermont Hall") {
+			sawEnglish = true
+		}
+		if strings.Contains(s.Body, "Salle de Rivermont") {
+			sawFrench = true
+		}
+	}
+	if !sawEnglish || !sawFrench {
+		t.Fatalf("each recipient should see their own language (english=%v french=%v)", sawEnglish, sawFrench)
+	}
+}

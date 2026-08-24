@@ -35,6 +35,29 @@ type C2Notifier struct {
 	fallback Notifier // logs, so a failed or unconfigured send is still visible
 }
 
+// translateFacility renames a booking's facility into the recipient's language.
+//
+// Without this the message text is French but the facility is still called
+// "Rivermont Community Hall" — which is the exact half-translated result FAC-12
+// exists to avoid. Read directly rather than through the facility service to
+// keep the notifier free of that dependency; it is one indexed lookup.
+func (n *C2Notifier) translateFacility(b domain.Booking, l string) domain.Booking {
+	if n.db == nil || b.Facility == nil || domain.NormalizeLanguage(l) == domain.DefaultLanguage {
+		return b
+	}
+	var rows []domain.FacilityTranslation
+	if err := n.db.Limit(1).Find(&rows, "facility_id = ? AND language = ?",
+		b.FacilityID, domain.NormalizeLanguage(l)).Error; err != nil || len(rows) == 0 {
+		return b
+	}
+	// Copy the facility so the caller's booking — which may be shared with other
+	// recipients in a different language — is untouched.
+	fac := *b.Facility
+	fac.ApplyTranslation(rows[0])
+	b.Facility = &fac
+	return b
+}
+
 // NewC2Notifier wires the notifier to C2's partner API.
 func NewC2Notifier(db *gorm.DB, client *c2.Client) *C2Notifier {
 	return &C2Notifier{db: db, client: client, fallback: NewLogNotifier()}
@@ -42,7 +65,7 @@ func NewC2Notifier(db *gorm.DB, client *c2.Client) *C2Notifier {
 
 func (n *C2Notifier) BookingSubmitted(b domain.Booking) {
 	// The booker learns it is pending; staff learn there is something to review.
-	n.toBooker(b, func(l string) message { return bookingSubmitted(b, l) })
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingSubmitted(b, l) })
 	n.toStaff(b)
 	n.fallback.BookingSubmitted(b)
 }
@@ -52,22 +75,22 @@ func (n *C2Notifier) BookingConfirmed(b domain.Booking, _ string) {
 	// only. It points at this app's authenticated invite endpoint, which is
 	// right for a document naming someone's booking.
 	invite := n.inviteURL(b.ID)
-	n.toBooker(b, func(l string) message { return bookingConfirmed(b, l, invite) })
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingConfirmed(b, l, invite) })
 	n.fallback.BookingConfirmed(b, "")
 }
 
 func (n *C2Notifier) BookingDenied(b domain.Booking) {
-	n.toBooker(b, func(l string) message { return bookingDenied(b, l) })
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingDenied(b, l) })
 	n.fallback.BookingDenied(b)
 }
 
 func (n *C2Notifier) BookingCancelled(b domain.Booking, _ string) {
-	n.toBooker(b, func(l string) message { return bookingCancelled(b, l) })
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingCancelled(b, l) })
 	n.fallback.BookingCancelled(b, "")
 }
 
 func (n *C2Notifier) BookingReminder(b domain.Booking, instructions string) {
-	n.toBooker(b, func(l string) message { return bookingReminder(b, l, instructions) })
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingReminder(b, l, instructions) })
 	n.fallback.BookingReminder(b, instructions)
 }
 
@@ -83,12 +106,13 @@ func (n *C2Notifier) WaitlistOpened(e domain.WaitlistEntry, facilityName string)
 
 // toBooker resolves the booking's owner and sends them the message their
 // language calls for.
-func (n *C2Notifier) toBooker(b domain.Booking, build func(l string) message) {
+func (n *C2Notifier) toBooker(b domain.Booking, build func(b domain.Booking, l string) message) {
 	u, ok := n.user(b.UserID)
 	if !ok {
 		return
 	}
-	n.send(u, build(lang(u.Language)))
+	l := lang(u.Language)
+	n.send(u, build(n.translateFacility(b, l), l))
 }
 
 // toStaff notifies staff that a request needs review. Until per-facility
@@ -105,7 +129,8 @@ func (n *C2Notifier) toStaff(b domain.Booking) {
 		return
 	}
 	for _, s := range staff {
-		n.send(s, staffReviewNeeded(b, lang(s.Language)))
+		l := lang(s.Language)
+		n.send(s, staffReviewNeeded(n.translateFacility(b, l), l))
 	}
 }
 

@@ -49,6 +49,8 @@ func AllModels() []any {
 		&PaymentIntegration{},
 		&CancellationPolicy{},
 		&RefundTier{},
+		&FacilityTranslation{},
+		&AccessoryTranslation{},
 		&EntitlementDetermination{},
 		&BookingEntitlement{},
 	}

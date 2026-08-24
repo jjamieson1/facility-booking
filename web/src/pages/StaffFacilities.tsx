@@ -41,7 +41,7 @@ export function StaffFacilities() {
 function FacilityRow({ facility }: { facility: Facility }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [panel, setPanel] = useState<"none" | "edit" | "blackouts">("none");
+  const [panel, setPanel] = useState<"none" | "edit" | "blackouts" | "translations">("none");
   const del = useMutation({
     mutationFn: () => api.deleteFacility(facility.id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["facilities"] }),
@@ -60,6 +60,7 @@ function FacilityRow({ facility }: { facility: Facility }) {
           {facility.requiresApproval && <Badge tone="amber">{t("manage.approval")}</Badge>}
           <Button variant="outline" onClick={() => setPanel(panel === "edit" ? "none" : "edit")}>{t("manage.edit")}</Button>
           <Button variant="outline" onClick={() => setPanel(panel === "blackouts" ? "none" : "blackouts")}>{t("manage.blackouts")}</Button>
+          <Button variant="outline" onClick={() => setPanel(panel === "translations" ? "none" : "translations")}>{t("manage.translations")}</Button>
           <Button variant="ghost" onClick={() => { if (confirm(t("manage.deleteConfirm", { name: facility.name }))) del.mutate(); }}>{t("manage.delete")}</Button>
         </div>
       </div>
@@ -72,6 +73,11 @@ function FacilityRow({ facility }: { facility: Facility }) {
       {panel === "blackouts" && (
         <div className="mt-4 border-t border-slate-100 pt-4">
           <BlackoutManager facilityId={facility.id} />
+        </div>
+      )}
+      {panel === "translations" && (
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <TranslationEditor facilityId={facility.id} />
         </div>
       )}
     </Card>
@@ -212,5 +218,99 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="mb-1 block text-slate-500">{label}</span>
       {children}
     </label>
+  );
+}
+
+// TranslationEditor edits one facility's text per language (§4.11).
+//
+// Separate from the main form on purpose: only some fields are translatable.
+// Capacity, fees and the street address are the same in both languages, and
+// putting them behind a language tab would invite someone to "translate" an
+// address or enter a second, divergent capacity.
+function TranslationEditor({ facilityId }: { facilityId: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [lang, setLang] = useState<"en" | "fr">("fr");
+  const [draft, setDraft] = useState<Record<string, string> | null>(null);
+  const [error, setError] = useState("");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["facilityTranslations", facilityId],
+    queryFn: () => api.facilityTranslations(facilityId),
+  });
+
+  const stored = data?.find((x) => x.language === lang);
+  const value = (field: keyof typeof fields) =>
+    draft?.[field] ?? (stored ? (stored[field] as string) ?? "" : "");
+
+  const fields = {
+    name: t("manage.name"),
+    description: t("manage.description"),
+    beforeInstructions: t("manage.beforeInstructions"),
+    afterInstructions: t("manage.afterInstructions"),
+  };
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.saveFacilityTranslation(facilityId, {
+        language: lang,
+        name: value("name"),
+        description: value("description"),
+        beforeInstructions: value("beforeInstructions"),
+        afterInstructions: value("afterInstructions"),
+      }),
+    onSuccess: (rows) => {
+      setDraft(null);
+      setError("");
+      qc.setQueryData(["facilityTranslations", facilityId], rows);
+      // The directory and detail pages render this text.
+      void qc.invalidateQueries({ queryKey: ["facilities"] });
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  if (isLoading) return <Spinner />;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h4 className="font-semibold">{t("manage.translationsTitle")}</h4>
+        <p className="text-sm text-slate-500">{t("manage.translationsHint")}</p>
+      </div>
+
+      <div role="group" aria-label={t("a11y.language")} className="flex gap-1 text-sm">
+        {(["en", "fr"] as const).map((l) => (
+          <button
+            key={l}
+            type="button"
+            onClick={() => { setLang(l); setDraft(null); }}
+            aria-pressed={lang === l}
+            className={`rounded-lg px-3 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+              lang === l ? "bg-brand-500 text-white" : "bg-white text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            {l.toUpperCase()}
+            {/* A language with no name yet has nothing stored at all. */}
+            {l !== "en" && !data?.find((x) => x.language === l)?.name && " •"}
+          </button>
+        ))}
+      </div>
+
+      {Object.entries(fields).map(([field, label]) => (
+        <Field key={field} label={label}>
+          <Input
+            value={value(field as keyof typeof fields)}
+            onChange={(e) => setDraft((d) => ({ ...(d ?? {}), [field]: e.target.value }))}
+          />
+        </Field>
+      ))}
+
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <Button disabled={save.isPending} onClick={() => save.mutate()}>
+          {save.isPending ? t("manage.saving") : t("manage.saveChanges")}
+        </Button>
+      </div>
+    </div>
   );
 }
