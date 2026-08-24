@@ -163,13 +163,23 @@ func (h bookingHandler) cancel(w http.ResponseWriter, r *http.Request) {
 	// latency — the same rule the entitlement resolution follows.
 	var refund *domain.Quote
 	if quoted && quote.RefundCents > 0 {
-		if _, err := h.payments.RefundAmount(r.Context(), b.ID, quote.RefundCents, quote.Explanation); err != nil {
+		_, err := h.payments.RefundAmount(r.Context(), b.ID, quote.RefundCents, quote.Explanation)
+		switch {
+		case errors.Is(err, payment.ErrRefundNotSupported):
+			// The gateway does not take refund instructions from us (C2 refunds
+			// are an operator action inside C2). The debt has been recorded as an
+			// obligation, so this is a queued refund, not a failed one — auditing
+			// it as a failure would send staff hunting for a fault that is not
+			// there.
+			h.recordAudit(r, "booking.refund.owed", b.ID,
+				fmt.Sprintf("Refund of %d cents is owed and must be issued at the gateway: %s", quote.RefundCents, quote.Explanation))
+		case err != nil:
 			// The booking is cancelled and the slot is free; a failed refund must
 			// not undo that or the resident is left holding a booking they asked
 			// to drop. Surface it for staff instead.
 			h.recordAudit(r, "booking.refund.failed", b.ID,
 				fmt.Sprintf("Automatic refund of %d cents failed: %v", quote.RefundCents, err))
-		} else {
+		default:
 			h.recordAudit(r, "booking.refund", b.ID, quote.Explanation)
 		}
 	}
@@ -386,6 +396,15 @@ func (h bookingHandler) refund(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pay, err := h.payments.RefundAmount(r.Context(), id, req.AmountCents, req.Reason)
+	if errors.Is(err, payment.ErrRefundNotSupported) {
+		// Recorded as owed rather than refunded. 202 rather than 200: staff have
+		// been heard, but the money has not moved and they must finish the job at
+		// the gateway. Reporting 200 would tell them it was done.
+		h.recordAudit(r, "booking.refund.owed", id,
+			fmt.Sprintf("Refund of %d cents recorded as owed; issue it at the gateway", req.AmountCents))
+		writeJSON(w, http.StatusAccepted, pay)
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "refund failed")
 		return

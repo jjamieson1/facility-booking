@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -83,6 +84,14 @@ func (s *Service) Pay(ctx context.Context, bookingID, card string) (*domain.Paym
 	}
 
 	provider := s.resolve(ctx)
+
+	// A hosted gateway runs its own checkout: there is no card to take here, and
+	// no synchronous outcome. Raise the bill, record it pending, and hand back
+	// where to pay.
+	if hosted, ok := provider.(HostedProvider); ok {
+		return s.raiseHosted(ctx, hosted, &b)
+	}
+
 	charge, err := provider.Charge(ctx, b.FeeCents, card)
 	if err != nil {
 		// Record the decline so it shows on the reconciliation ledger, then
@@ -108,6 +117,84 @@ func (s *Service) Pay(ctx context.Context, bookingID, card string) (*domain.Paym
 		CardLast4: charge.Last4, Message: charge.Message,
 	})
 	return &pay, nil
+}
+
+// BillRef is the invoice reference this app sends a hosted gateway. Derived from
+// the booking id so it is stable across retries — that stability is what makes
+// the gateway's idempotency work, and a random reference would bill twice.
+func BillRef(bookingID string) string { return "FB-" + bookingID }
+
+// raiseHosted bills through a gateway that hosts its own checkout.
+//
+// The Payment row is written *pending*, not paid: the resident has been asked
+// for money, not taken it. Marking it paid here would confirm bookings nobody
+// has paid for, and would misreport revenue on the §4.8 report.
+func (s *Service) raiseHosted(ctx context.Context, provider HostedProvider, b *domain.Booking) (*domain.Payment, error) {
+	subject, err := s.payerSubject(ctx, b.UserID)
+	if err != nil {
+		return nil, err
+	}
+	var facilityName string
+	// Best-effort: the description is a courtesy on the citizen's invoice, and a
+	// missing facility name must not stop the bill going out.
+	var f domain.Facility
+	if s.db.WithContext(ctx).Select("name").First(&f, "id = ?", b.FacilityID).Error == nil {
+		facilityName = f.Name
+	}
+
+	out, err := provider.RaiseBill(ctx, Bill{
+		Subject:     subject,
+		Ref:         BillRef(b.ID),
+		AmountCents: b.FeeCents,
+		Description: billDescription(facilityName, b.StartsAt),
+	})
+	if err != nil {
+		s.record(ctx, domain.PaymentTransaction{
+			BookingID: b.ID, Kind: domain.TxnCharge, Status: domain.TxnFailed,
+			AmountCents: b.FeeCents, Provider: provider.Name(),
+			Message: "could not raise the bill: " + err.Error(),
+		})
+		return nil, err
+	}
+
+	pay := domain.Payment{
+		BookingID: b.ID, AmountCents: b.FeeCents, Status: domain.PayPending,
+		Provider: provider.Name(), ProviderRef: out.Ref, PayURL: out.PayURL,
+	}
+	if err := s.db.WithContext(ctx).Where("booking_id = ?", b.ID).Assign(pay).FirstOrCreate(&pay).Error; err != nil {
+		return nil, err
+	}
+	s.record(ctx, domain.PaymentTransaction{
+		BookingID: b.ID, PaymentID: pay.ID, Kind: domain.TxnCharge, Status: domain.TxnPending,
+		AmountCents: b.FeeCents, Provider: provider.Name(), ProviderRef: out.Ref,
+		Message: "billed; awaiting payment at the gateway",
+	})
+	return &pay, nil
+}
+
+// payerSubject resolves who the gateway should bill. Guests carry a local
+// `guest:` subject that no external gateway knows, so they are rejected here
+// rather than being sent to the gateway to fail — the booking stands, but the
+// money has to be taken another way.
+func (s *Service) payerSubject(ctx context.Context, userID string) (string, error) {
+	var u domain.User
+	if err := s.db.WithContext(ctx).Select("subject").First(&u, "id = ?", userID).Error; err != nil {
+		return "", ErrNotFound
+	}
+	if u.Subject == "" || strings.HasPrefix(u.Subject, "guest:") {
+		return "", ErrNoPayerIdentity
+	}
+	return u.Subject, nil
+}
+
+// billDescription is what the citizen sees on their invoice in C2. It has to
+// stand alone: they may read it days later, in a system that knows nothing about
+// this app.
+func billDescription(facility string, starts time.Time) string {
+	if facility == "" {
+		facility = "Facility booking"
+	}
+	return fmt.Sprintf("%s — %s", facility, starts.Format("2 Jan 2006, 3:04pm"))
 }
 
 // record appends a transaction to the ledger. Best-effort: a ledger write must
@@ -147,6 +234,17 @@ func (s *Service) RefundAmount(ctx context.Context, bookingID string, amountCent
 		amountCents = pay.AmountCents
 	}
 	msg, err := provider.Refund(ctx, pay.ProviderRef, amountCents)
+	if errors.Is(err, ErrRefundNotSupported) {
+		// The gateway will not take instructions from us — C2's refunds are an
+		// operator action inside C2. The cancellation has already happened and
+		// the slot is already free, so refusing here would strand the resident
+		// with neither booking nor money. Record the debt instead, and leave the
+		// payment paid: the money genuinely is still held.
+		if err := s.recordObligation(ctx, pay, amountCents, reason); err != nil {
+			return nil, err
+		}
+		return &pay, ErrRefundNotSupported
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +265,62 @@ func (s *Service) RefundAmount(ctx context.Context, bookingID string, amountCent
 		AmountCents: amountCents, Provider: provider.Name(), ProviderRef: pay.ProviderRef, Message: msg,
 	})
 	return &pay, nil
+}
+
+// recordObligation books money owed to a resident that this app cannot return
+// itself, so an operator can action it at the gateway and the debt can be
+// reconciled when they do.
+//
+// Idempotent per booking: cancelling is not repeatable, but a retried request or
+// a double-clicked button must not owe the resident twice.
+func (s *Service) recordObligation(ctx context.Context, pay domain.Payment, amountCents int, reason string) error {
+	var existing domain.RefundObligation
+	err := s.db.WithContext(ctx).
+		Where("booking_id = ? AND status = ?", pay.BookingID, domain.RefundOwed).
+		First(&existing).Error
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return err
+	}
+	ob := domain.RefundObligation{
+		BookingID: pay.BookingID, PaymentID: pay.ID, AmountCents: amountCents,
+		Reason: reason, Status: domain.RefundOwed,
+		Provider: pay.Provider, ProviderRef: pay.ProviderRef,
+	}
+	if err := s.db.WithContext(ctx).Create(&ob).Error; err != nil {
+		return err
+	}
+	s.record(ctx, domain.PaymentTransaction{
+		BookingID: pay.BookingID, PaymentID: pay.ID, Kind: domain.TxnRefund, Status: domain.TxnPending,
+		AmountCents: amountCents, Provider: pay.Provider, ProviderRef: pay.ProviderRef,
+		Message: "refund owed — issue it at the gateway: " + reason,
+	})
+	return nil
+}
+
+// Obligations lists refunds still owed, oldest first — the staff work queue.
+func (s *Service) Obligations(ctx context.Context, status domain.RefundObligationStatus) ([]domain.RefundObligation, error) {
+	out := []domain.RefundObligation{}
+	q := s.db.WithContext(ctx).Preload("Booking.Facility").Order("created_at asc")
+	if status != "" {
+		q = q.Where("status = ?", status)
+	}
+	return out, q.Find(&out).Error
+}
+
+// SettleObligation closes a debt once the gateway reports the refund. Called
+// from the settlement callback rather than by staff: the app learns the money
+// moved, it does not assert it.
+func (s *Service) SettleObligation(ctx context.Context, bookingID, gatewayRef string, cents int) error {
+	return s.db.WithContext(ctx).Model(&domain.RefundObligation{}).
+		Where("booking_id = ? AND status = ?", bookingID, domain.RefundOwed).
+		Updates(map[string]any{
+			"status":        domain.RefundSettled,
+			"settled_ref":   gatewayRef,
+			"settled_cents": cents,
+		}).Error
 }
 
 // normalizeCard strips spaces so "4242 4242 …" and "4242…" compare equally.

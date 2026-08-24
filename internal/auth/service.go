@@ -33,9 +33,14 @@ const backchannelLogoutEvent = "http://schemas.openid.net/event/backchannel-logo
 
 // Service performs the OIDC dance and manages sessions.
 type Service struct {
-	db            *gorm.DB
-	cfg           config.Config
-	verifier      *oidc.IDTokenVerifier
+	db       *gorm.DB
+	cfg      config.Config
+	verifier *oidc.IDTokenVerifier
+	// payVerifier checks C2's payment status tokens. It cannot be the verifier
+	// above: those tokens are audienced to our *application* id (the
+	// service_provider_id on the invoice), not our client_id, so the standard
+	// verifier rejects every one of them.
+	payVerifier   *oidc.IDTokenVerifier
 	userinfoURL   string
 	endSessionURL string    // OIDC RP-initiated logout endpoint at C2
 	postLogoutURL string    // where C2 sends the browser back after logout
@@ -60,10 +65,20 @@ func NewService(ctx context.Context, db *gorm.DB, cfg config.Config) (*Service, 
 	keySet := oidc.NewRemoteKeySet(ctx, base+"/keys")
 	verifier := oidc.NewVerifier(cfg.OIDCIssuer, keySet, &oidc.Config{ClientID: cfg.OIDCClientID})
 
+	// Same signing keys — C2 signs payment status tokens with its OIDC key — but
+	// a different expected audience. Built only when an application id is
+	// configured, so an unconfigured deployment rejects payment callbacks
+	// outright rather than skipping the audience check.
+	var payVerifier *oidc.IDTokenVerifier
+	if id := strings.TrimSpace(cfg.C2ApplicationID); id != "" {
+		payVerifier = oidc.NewVerifier(cfg.OIDCIssuer, keySet, &oidc.Config{ClientID: id})
+	}
+
 	return &Service{
 		db:            db,
 		cfg:           cfg,
 		verifier:      verifier,
+		payVerifier:   payVerifier,
 		userinfoURL:   base + "/userinfo",
 		endSessionURL: base + "/end_session",
 		postLogoutURL: cfg.OIDCPostLogoutRedirectURL,
@@ -325,6 +340,53 @@ func (s *Service) VerifyServiceToken(ctx context.Context, raw string) (string, e
 		return "", err
 	}
 	return tok.Subject, nil
+}
+
+// PaymentClaims are the claims C2 puts in a payment status token.
+type PaymentClaims struct {
+	Subject      string `json:"sub"`
+	InvoiceID    string `json:"invoice_id"`
+	ClientRef    string `json:"client_invoice_ref"`
+	Event        string `json:"event"` // "payment" or "refund"
+	EventAmount  Money  `json:"event_amount"`
+	Status       string `json:"status"`
+	Amount       Money  `json:"amount"`
+	GatewayTxnID string `json:"gateway_txn_id"`
+}
+
+// Money is C2's amount wire format: a decimal string plus a currency.
+type Money struct {
+	Amount   string `json:"amount"`
+	Currency string `json:"currency"`
+}
+
+// ErrInvalidPaymentToken rejects a settlement token we cannot trust.
+var ErrInvalidPaymentToken = errors.New("auth: invalid payment status token")
+
+// VerifyPaymentToken validates a payment status token from C2 and returns its
+// claims.
+//
+// The signature is the whole proof — there is no shared secret — so all of the
+// checks matter: RS256 against C2's published JWKS (keys rotate, so an unknown
+// kid refetches), the issuer, the audience (our application id), and expiry.
+// A token that fails any of them must not reach the ledger, because applying one
+// marks a booking paid.
+func (s *Service) VerifyPaymentToken(ctx context.Context, raw string) (*PaymentClaims, error) {
+	if s == nil || s.payVerifier == nil {
+		return nil, ErrNotConfigured
+	}
+	tok, err := s.payVerifier.Verify(ctx, raw)
+	if err != nil {
+		return nil, ErrInvalidPaymentToken
+	}
+	var c PaymentClaims
+	if err := tok.Claims(&c); err != nil {
+		return nil, ErrInvalidPaymentToken
+	}
+	if strings.TrimSpace(c.ClientRef) == "" || strings.TrimSpace(c.Event) == "" {
+		return nil, ErrInvalidPaymentToken
+	}
+	return &c, nil
 }
 
 type backchannelLogoutClaims struct {

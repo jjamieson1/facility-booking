@@ -67,6 +67,7 @@ func New(d Deps) http.Handler {
 	}
 
 	fac := facilityHandler{svc: d.Facility}
+	pcb := paymentCallbackHandler{auth: d.Auth, payments: d.Payment, audit: d.Audit}
 	bk := bookingHandler{bookings: d.Booking, facilities: d.Facility, payments: d.Payment, waitlist: d.Waitlist, waiver: d.Waiver, entitlements: d.Entitlements, policies: d.Policy, notifier: d.Notifier, audit: d.Audit}
 	wv := waiverHandler{svc: d.Waiver}
 	rep := reportHandler{svc: d.Reports}
@@ -76,13 +77,18 @@ func New(d Deps) http.Handler {
 	aud := auditHandler{svc: d.Audit}
 	cal := calendarSettingsHandler{svc: d.Calendar}
 	ent := entitlementHandler{svc: d.Entitlements}
-	psh := paymentSettingsHandler{svc: d.PaymentSettings}
+	psh := paymentSettingsHandler{svc: d.PaymentSettings, payments: d.Payment}
 	pol := policyHandler{policies: d.Policy, bookings: d.Booking}
 	langh := languageHandler{db: d.DB}
 	ah := authHandler{svc: d.Auth, appOrigin: d.Cfg.AppOrigin}
 
 	r.Route(d.Cfg.BasePath+"/api", func(api chi.Router) {
 		api.Route("/auth", ah.routes)
+
+		// C2 pushes settlement notices here, server-to-server: no session, no
+		// CSRF token, no shared secret. The signed status token is the entire
+		// authentication — see paymentCallbackHandler.settle.
+		api.Post("/payments/c2/callback", pcb.settle)
 
 		// Public directory + availability.
 		api.Get("/facilities", fac.list)
@@ -164,6 +170,7 @@ func New(d Deps) http.Handler {
 			// Read-only for staff: which calendar and payment modules the city runs on.
 			sr.Get("/staff/calendar-settings", cal.get)
 			sr.Get("/staff/payment-settings", psh.get)
+			sr.Get("/staff/refund-obligations", psh.obligations)
 		})
 
 		// Admin-only: user/role management.

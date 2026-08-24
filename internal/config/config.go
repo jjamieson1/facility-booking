@@ -51,6 +51,19 @@ type Config struct {
 	// URL with a trailing "/oidc" trimmed, since the partner surface is a sibling
 	// of the OIDC endpoints; set it explicitly when that guess is wrong.
 	C2PartnerOrigin string
+	// C2ApplicationID is this app's application id in C2 — the
+	// service_provider_id on invoices, and the audience C2 stamps into payment
+	// status tokens. It is NOT the OIDC client id; verifying a settlement
+	// against the wrong audience would reject every callback. Empty disables the
+	// payment callback entirely, which is the safe default: better to take no
+	// settlements than to take unverified ones.
+	C2ApplicationID string
+	// C2PaymentCallbackURL is where C2 pushes signed settlement notices. It must
+	// be publicly reachable; when empty, C2 sends nothing and reconciliation
+	// falls back to polling the invoice, which C2 calls the source of truth.
+	C2PaymentCallbackURL string
+	// PaymentCurrency is the ISO-4217 currency invoices are raised in.
+	PaymentCurrency string
 
 	C2APIURL      string
 	C2ServiceUser string
@@ -108,6 +121,9 @@ func Load() Config {
 		OIDCPostLogoutRedirectURL: getenv("FB_OIDC_POST_LOGOUT_REDIRECT_URL", appOrigin+"/"),
 		AdminEmails:               splitList(getenv("FB_ADMIN_EMAILS", "admin@c2.local")),
 		C2PartnerOrigin:           getenv("FB_C2_PARTNER_ORIGIN", partnerOriginFrom(getenv("FB_OIDC_BASE_URL", ""))),
+		C2ApplicationID:           getenv("FB_C2_APPLICATION_ID", ""),
+		C2PaymentCallbackURL:      getenv("FB_C2_PAYMENT_CALLBACK_URL", ""),
+		PaymentCurrency:           getenv("FB_PAYMENT_CURRENCY", "CAD"),
 		C2APIURL:                  strings.TrimRight(getenv("FB_C2_API_URL", ""), "/"),
 		C2ServiceUser:             getenv("FB_C2_SERVICE_USER", ""),
 		C2ServicePass:             getenv("FB_C2_SERVICE_PASS", ""),

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { api, type PaymentKind, type PaymentModule } from "../lib/api";
 import { useAuth } from "../lib/auth";
-import { Badge, Button, Card, Input, Spinner } from "../components/ui";
+import { Badge, Button, Card, Input, Spinner, formatDateTime, formatFee } from "../components/ui";
 
 // StaffPaymentSettings lets an admin choose which gateway the municipality takes
 // money through (§4.7). The list comes from the API's module registry, so a new
@@ -73,6 +73,8 @@ export function StaffPaymentSettings() {
         )}
       </Card>
 
+      <RefundObligations />
+
       <Card className="p-5">
         <form onSubmit={(e) => { e.preventDefault(); if (dirty && !missing) save.mutate(); }}>
           <fieldset disabled={!isAdmin}>
@@ -128,6 +130,47 @@ export function StaffPaymentSettings() {
         </form>
       </Card>
     </div>
+  );
+}
+
+// RefundObligations is the queue of money owed but not yet returned.
+//
+// It exists because a hosted gateway need not accept refund instructions from
+// the billing application — C2's partner API has no refund endpoint at all, so
+// an operator has to issue it inside C2. The cancellation still happened and the
+// resident is still owed, so the debt is listed here with the reference an
+// operator needs to find it. Rendered even when empty is *not* the choice: an
+// empty queue is the normal state and a permanent empty card would train staff
+// to ignore this area.
+function RefundObligations() {
+  const { t } = useTranslation();
+  const { data, isLoading } = useQuery({ queryKey: ["refundObligations"], queryFn: () => api.refundObligations("owed") });
+
+  if (isLoading || !data?.length) return null;
+
+  return (
+    <Card className="p-5">
+      <h3 className="mb-1 font-semibold">{t("paymentSettings.owedTitle")}</h3>
+      <p className="mb-4 text-sm text-slate-600">{t("paymentSettings.owedHint")}</p>
+      <ul className="space-y-2">
+        {data.map((o) => (
+          <li key={o.id} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-amber-900">
+                {formatFee(o.amountCents)} · {o.booking?.facility?.name ?? t("paymentSettings.owedBooking")}
+              </span>
+              <Badge tone="amber">{t("paymentSettings.owedBadge")}</Badge>
+            </div>
+            {o.reason && <p className="mt-1 text-amber-800">{o.reason}</p>}
+            <p className="mt-1 text-xs text-amber-700">
+              {t("paymentSettings.owedRef", { provider: o.provider, ref: o.providerRef })}
+              {" · "}
+              {formatDateTime(o.createdAt)}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
