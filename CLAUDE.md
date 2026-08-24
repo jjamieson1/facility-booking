@@ -54,6 +54,17 @@ another's message. Core v1 + the "further useful" list are complete; facility
 *content* (names/descriptions/instructions) is stored in one language — a real bilingual
 deployment would translate that data too.
 
+Facility photos are **hosted locally** in `web/public/facilities/` (nine 1200x800 JPEGs),
+not hotlinked off-site — the off-site copies intermittently failed and put broken images on a
+public municipal page. `Facility.ImageURL` holds a path relative to the SPA
+(`facilities/ice-arena.jpg`), which `resolveImage` in `web/src/components/ui.tsx` joins to
+`import.meta.env.BASE_URL` so it also resolves under production's `/facility-booking/` base;
+absolute URLs are passed through untouched so a municipality can still use its own CDN.
+`FacilityImage` falls back to a labelled placeholder on an empty `src` or a load error.
+`seed.relocateImages` runs on **every** boot (like the cancellation policy) to repoint
+databases seeded before the photos moved in-house; it matches on the exact old URL, so an
+operator's own CDN choice is never overwritten.
+
 The `seed` package generates a **deterministic year of history** (7 facilities + ~600 bookings +
 payments, weighted toward popular facilities and recent months for a rising trend) so the
 reporting dashboard is populated on first boot. Tune `historyBookings` in `internal/seed/seed.go`.

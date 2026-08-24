@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api, type FacilityFilter } from "../lib/api";
-import { Badge, Button, Card, Input, Spinner, formatFee } from "../components/ui";
+import { Badge, Button, Card, FacilityImage, Input, Spinner, formatFee } from "../components/ui";
 
 export function FacilityList() {
   const { t } = useTranslation();
@@ -84,7 +84,7 @@ export function FacilityList() {
           {data.map((f) => (
             <Link key={f.id} to={`/facilities/${f.id}`}>
               <Card className="h-full overflow-hidden transition hover:shadow-md">
-                <img src={f.imageUrl} alt={f.name} className="h-40 w-full object-cover" />
+                <FacilityImage src={f.imageUrl} alt={f.name} className="h-40 w-full object-cover" />
                 <div className="space-y-2 p-4">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold">{f.name}</h3>
