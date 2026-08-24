@@ -144,7 +144,14 @@ func (c *Client) post(ctx context.Context, path string, body, out any) error {
 		return fmt.Errorf("c2: %s: %w", path, err)
 	}
 	defer res.Body.Close()
+	return decodeStatus(path, res, out)
+}
 
+// decodeStatus maps C2's status codes onto the sentinel errors and decodes the
+// body on success. Shared by post and get so both surfaces agree on what a 403
+// means — that distinction (no consent, not a failure) is the whole reason the
+// sentinels exist.
+func decodeStatus(path string, res *http.Response, out any) error {
 	switch res.StatusCode {
 	case http.StatusOK, http.StatusAccepted, http.StatusCreated:
 		if out == nil {
@@ -159,6 +166,10 @@ func (c *Client) post(ctx context.Context, path string, body, out any) error {
 		return ErrUnauthorized
 	case http.StatusTooManyRequests:
 		return ErrRateLimited
+	case http.StatusBadRequest, http.StatusConflict, http.StatusUnprocessableEntity:
+		// C2 rejected the request on its own terms — most often a total that
+		// does not match the sum of the lines. Retrying the same body is futile.
+		return ErrInvoiceRejected
 	default:
 		// Never echo the response body verbatim: it is remote content and may
 		// carry detail we would rather not put in our logs.

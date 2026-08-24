@@ -15,6 +15,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/calendar"
 	"github.com/jjamieson1/facility-booking/internal/config"
 	"github.com/jjamieson1/facility-booking/internal/db"
+	"github.com/jjamieson1/facility-booking/internal/domain"
 	"github.com/jjamieson1/facility-booking/internal/entitlement"
 	"github.com/jjamieson1/facility-booking/internal/facility"
 	"github.com/jjamieson1/facility-booking/internal/httpapi"
@@ -26,6 +27,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/reports"
 	"github.com/jjamieson1/facility-booking/internal/seed"
 	"github.com/jjamieson1/facility-booking/internal/servicecard"
+	"github.com/jjamieson1/facility-booking/internal/unpaid"
 	"github.com/jjamieson1/facility-booking/internal/users"
 	"github.com/jjamieson1/facility-booking/internal/waitlist"
 	"github.com/jjamieson1/facility-booking/internal/waiver"
@@ -83,6 +85,11 @@ func main() {
 	// Which gateway to charge through is an admin setting, resolved per request
 	// so a change takes effect without a restart (§4.7).
 	paymentSettings := payment.NewSettingsService(gdb, auditRec)
+	// The C2 payment broker rides the same partner API and the same client
+	// credentials as notifications — one client, not two. When the partner origin
+	// is unset, selecting the broker yields a provider that fails every call
+	// rather than one that quietly does nothing.
+	paymentSettings.SetBroker(partner, cfg.C2PaymentCallbackURL, cfg.PaymentCurrency)
 
 	entitlementSvc := entitlement.NewService(gdb, auditRec,
 		entitlement.NewRollProvider(seed.MunicipalRoll(), 365*24*time.Hour))
@@ -93,6 +100,15 @@ func main() {
 
 	bookingSvc := booking.NewService(gdb, policySvc)
 	waitlistSvc := waitlist.NewService(gdb, notifier)
+
+	// Release bookings billed through a hosted gateway that were never paid
+	// (§4.7). C2 settles out of band, so without this one unpaid request holds a
+	// popular slot until its own start time — free denial-of-service on the
+	// calendar. 24h by product decision; the freed slot opens the waitlist, which
+	// is the reason for releasing early rather than at the start time.
+	go unpaid.NewSweeper(gdb, notifier, 24*time.Hour, 15*time.Minute, func(b domain.Booking) {
+		_, _ = waitlistSvc.NotifyFreed(context.Background(), b.FacilityID, b.StartsAt, b.EndsAt)
+	}).Run(context.Background())
 
 	// Background sweeper: expire waitlist entries whose slot has passed (they can
 	// no longer free up), keeping the resident list and the C2 callout tidy.

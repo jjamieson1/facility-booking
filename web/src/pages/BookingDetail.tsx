@@ -198,6 +198,14 @@ function PaymentCard({ booking }: { booking: Booking }) {
     onError: (e: Error) => setError(e.message),
   });
 
+  // A hosted gateway (C2's payment broker) runs its own checkout, so there is no
+  // card form to render here — the resident is sent away to pay and comes back.
+  // Driven off the payment the server actually created rather than off the
+  // configured module, so the card form can never appear over a hosted bill.
+  if (booking.payment?.payUrl) {
+    return <HostedPaymentCard booking={booking} payUrl={booking.payment.payUrl} />;
+  }
+
   return (
     <Card className="space-y-4 p-6">
       <div className="flex items-center justify-between">
@@ -219,6 +227,50 @@ function PaymentCard({ booking }: { booking: Booking }) {
 
       <Button className="w-full" disabled={pay.isPending} onClick={() => { setError(""); pay.mutate(); }}>
         {pay.isPending ? t("booking.processing") : t("booking.pay", { price: formatFee(booking.feeCents) })}
+      </Button>
+    </Card>
+  );
+}
+
+// HostedPaymentCard sends the resident to the gateway's own checkout.
+//
+// It deliberately does not claim the booking is paid on return: settlement
+// arrives on the server's callback, which may land after the resident is back.
+// Saying "paid" here and being wrong is worse than saying "we are waiting".
+function HostedPaymentCard({ booking, payUrl }: { booking: Booking; payUrl: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+
+  return (
+    <Card className="space-y-4 p-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">{t("booking.pay", { price: formatFee(booking.feeCents) })}</h3>
+        <Badge tone="amber">{t("booking.awaitingPayment")}</Badge>
+      </div>
+
+      <p className="text-sm text-slate-600">{t("booking.hostedIntro")}</p>
+
+      {/* rel=noopener because this leaves our origin for the payment portal. */}
+      <a
+        href={payUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+      >
+        {t("booking.payAtPortal")}
+      </a>
+
+      <p className="text-xs text-slate-500">{t("booking.hostedHold")}</p>
+
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => {
+          void qc.invalidateQueries({ queryKey: ["booking", booking.id] });
+          void qc.invalidateQueries({ queryKey: ["myBookings"] });
+        }}
+      >
+        {t("booking.checkPayment")}
       </Button>
     </Card>
   );

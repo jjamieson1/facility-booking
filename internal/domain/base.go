@@ -41,6 +41,7 @@ func AllModels() []any {
 		&Blackout{},
 		&Booking{},
 		&Payment{},
+		&RefundObligation{},
 		&PaymentTransaction{},
 		&WaitlistEntry{},
 		&WaiverDocument{},

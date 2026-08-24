@@ -191,6 +191,51 @@ answers 404.) In production, where the API is served under one origin, the deriv
 With no origin configured the app falls back to `LogNotifier`, which is what keeps it runnable
 without C2. The startup line reports which: `notify=c2` or `notify=log`.
 
+### Payments go through C2's payment broker too
+
+`internal/payment`'s `c2` module (FAC-2) bills through the **same partner API, origin and client
+credentials** as notifications — one `internal/c2` client, not two. C2 raises the invoice, notifies
+the citizen, hosts the checkout and reports the outcome with a signed token; no card data reaches
+this app.
+
+Two facts about C2 shape the whole design, and both were verified against C2's code rather than
+its docs:
+
+- **Settlement is asynchronous.** `HostedProvider.RaiseBill` returns a `payUrl`, not a receipt, so
+  `Payment.Status` sits `pending` until the callback. `Service.Pay` branches on the
+  **interface**, never on the module name. Marking a bill paid when it is raised would confirm
+  bookings nobody paid for and inflate the §4.8 revenue report.
+- **We cannot refund.** The partner API is exactly three endpoints — `POST /partner/notifications`,
+  `POST /partner/invoices`, `GET /partner/invoices/{ref}`. Refunding lives at
+  `POST /api/payments/invoices/{id}/refund` on C2's **admin** surface behind `WRITE_PAYMENTS`.
+  `C2Provider.Refund` therefore always returns `ErrRefundNotSupported`, and
+  `Service.RefundAmount` records a **`domain.RefundObligation`** instead. The cancellation still
+  commits and the slot still frees — refusing would strand the resident with neither booking nor
+  money — and `/staff/payments` lists what is owed with the reference an operator needs. The
+  refund callback closes the obligation. Cancellation audits this as `booking.refund.owed`, *not*
+  `booking.refund.failed`: it is queued, not broken.
+
+**`POST /api/payments/c2/callback` is unauthenticated, and that is not an oversight** — C2 posts
+server-to-server with no session and no shared secret. The RS256 signature over C2's published JWKS
+is the entire authentication, so `auth.VerifyPaymentToken` checks signature, issuer, audience and
+expiry, and nothing may bypass it. The audience is **`FB_C2_APPLICATION_ID`** (the invoice's
+`service_provider_id`), *not* the OIDC client id, which is why it needs its own verifier —
+`auth.Service.verifier` would reject every payment token. With no application id configured the
+route refuses outright rather than skipping the audience check.
+
+Settlements are **idempotent on the gateway's own reference**, not on payment status: C2 re-delivers,
+and a partial refund leaves the status unchanged so a status check would re-apply it forever. A
+partial refund keeps `Payment.Status` at `paid`, matching the in-app refund path — money is still
+held against that booking.
+
+**Guests cannot be billed here.** `guest:<uuid>` subjects (FAC-24) mean nothing to C2, so
+`payerSubject` rejects them before the call rather than letting C2 404.
+
+**Unpaid bookings are released after 24h** by `internal/unpaid`'s sweeper (alongside `reminders`),
+which frees the slot and opens the waitlist. Without it one unpaid request holds a popular slot
+until its own start time — a free denial-of-service on the calendar. It never touches a paid booking
+or one already under way.
+
 ### Database: MariaDB only
 
 **MariaDB is the only supported database, in dev, test and production. There is no fallback.**

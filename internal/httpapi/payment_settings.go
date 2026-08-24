@@ -5,11 +5,29 @@ import (
 	"net/http"
 
 	"github.com/jjamieson1/facility-booking/internal/auth"
+	"github.com/jjamieson1/facility-booking/internal/domain"
 	"github.com/jjamieson1/facility-booking/internal/payment"
 )
 
 type paymentSettingsHandler struct {
-	svc *payment.SettingsService
+	svc      *payment.SettingsService
+	payments *payment.Service
+}
+
+// obligations lists refunds owed but not yet issued — money this app could not
+// return itself because the gateway takes refund instructions from an operator,
+// not from us. Staff-readable: it is a work queue, and someone has to work it.
+func (h paymentSettingsHandler) obligations(w http.ResponseWriter, r *http.Request) {
+	status := domain.RefundObligationStatus(r.URL.Query().Get("status"))
+	if status == "" {
+		status = domain.RefundOwed // the queue, not the archive
+	}
+	out, err := h.payments.Obligations(r.Context(), status)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load refund obligations")
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // get returns the available payment modules plus the current selection, so the

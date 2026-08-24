@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
+	"github.com/jjamieson1/facility-booking/internal/c2"
 	"github.com/jjamieson1/facility-booking/internal/domain"
 )
 
@@ -34,6 +35,12 @@ type Settings struct {
 type SettingsService struct {
 	db    *gorm.DB
 	audit auditlog.Recorder
+	// Broker wiring for the C2 module, supplied by SetBroker at boot. Held here
+	// rather than passed to New because it is runtime configuration, not part of
+	// a module's static description.
+	broker         *c2.Client
+	brokerCallback string
+	brokerCurrency string
 }
 
 // NewSettingsService constructs the payment settings service.
@@ -112,11 +119,41 @@ func (s *SettingsService) Provider(ctx context.Context) Provider {
 		p, _ := New(DefaultKind, nil)
 		return p
 	}
+	if set.Effective == KindC2 {
+		return s.brokerProvider(set.Config)
+	}
 	p, err := New(set.Effective, set.Config)
 	if err != nil {
 		p, _ = New(DefaultKind, nil)
 	}
 	return p
+}
+
+// SetBroker supplies the C2 client the broker module bills through. Injected
+// here rather than built inside New because it needs runtime configuration (the
+// partner origin and this app's public callback URL) that the stateless modules
+// do not.
+func (s *SettingsService) SetBroker(client *c2.Client, callbackURL, currency string) {
+	s.broker = client
+	s.brokerCallback = callbackURL
+	s.brokerCurrency = currency
+}
+
+// brokerProvider builds the C2 provider, or a loudly-failing stand-in when the
+// partner API is not configured.
+//
+// The stand-in matters: a municipality can select the broker in the back-office
+// on a deployment that has no C2 credentials, and a provider that quietly did
+// nothing would confirm bookings nobody paid for. Every call fails instead.
+func (s *SettingsService) brokerProvider(config map[string]string) Provider {
+	if s.broker == nil || !s.broker.Configured() {
+		return pendingProvider{kind: KindC2}
+	}
+	currency := s.brokerCurrency
+	if c := strings.TrimSpace(config["currency"]); c != "" {
+		currency = c
+	}
+	return NewC2Provider(s.broker, s.brokerCallback, currency)
 }
 
 func settingsFor(kind Kind, config map[string]string, updatedBy string) Settings {

@@ -122,12 +122,36 @@ export interface Slot {
 }
 
 export type BookingStatus = "pending" | "confirmed" | "denied" | "cancelled";
-export type PaymentStatus = "unpaid" | "paid" | "refunded";
+// "pending" is a bill raised at a hosted gateway with no money yet — distinct
+// from "unpaid" (nothing raised) and from "paid".
+export type PaymentStatus = "unpaid" | "pending" | "paid" | "refunded";
 
 export interface Payment {
   bookingId: string;
   amountCents: number;
   status: PaymentStatus;
+  // Set only by a gateway that hosts its own checkout (C2's payment broker):
+  // where to send the payer. Its presence is what tells the UI not to render a
+  // card form.
+  payUrl?: string;
+}
+
+// RefundObligation is money owed to a resident that this app could not return
+// itself, because the gateway takes refund instructions from an operator rather
+// than from us.
+export interface RefundObligation {
+  id: string;
+  bookingId: string;
+  amountCents: number;
+  currency: string;
+  reason: string;
+  status: "owed" | "settled";
+  provider: string;
+  providerRef: string;
+  settledRef?: string;
+  settledCents?: number;
+  createdAt: string;
+  booking?: Booking;
 }
 
 export interface Booking {
@@ -559,6 +583,8 @@ export const api = {
   setCalendarSettings: (kind: CalendarKind, config: Record<string, string>) =>
     put<CalendarSettingsResponse>("/staff/calendar-settings", { kind, config }),
 
+  refundObligations: (status: "owed" | "settled" = "owed") =>
+    get<RefundObligation[]>(`/staff/refund-obligations?status=${status}`),
   paymentSettings: () => get<PaymentSettingsResponse>("/staff/payment-settings"),
   setPaymentSettings: (kind: PaymentKind, config: Record<string, string>) =>
     put<PaymentSettingsResponse>("/staff/payment-settings", { kind, config }),

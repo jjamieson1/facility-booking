@@ -12,6 +12,7 @@ type Kind string
 
 const (
 	KindMock    Kind = "mock"   // simulated gateway; the zero-config default
+	KindC2      Kind = "c2"     // C2's payment broker: C2 hosts the checkout
 	KindStripe  Kind = "stripe" // Stripe Elements/Checkout
 	KindMoneris Kind = "moneris"
 )
@@ -46,12 +47,17 @@ type Field struct {
 // staff can refund in-app or must do it in the provider's own dashboard. A
 // municipality choosing a processor needs to see that before selecting it.
 type Module struct {
-	Kind           Kind    `json:"kind"`
-	Name           string  `json:"name"`
-	Summary        string  `json:"summary"`
-	Available      bool    `json:"available"` // false = selectable as intent, not yet functional
-	SupportsRefund bool    `json:"supportsRefund"`
-	SupportsHold   bool    `json:"supportsHold"` // separate authorisation/capture, for deposits
+	Kind           Kind   `json:"kind"`
+	Name           string `json:"name"`
+	Summary        string `json:"summary"`
+	Available      bool   `json:"available"` // false = selectable as intent, not yet functional
+	SupportsRefund bool   `json:"supportsRefund"`
+	SupportsHold   bool   `json:"supportsHold"` // separate authorisation/capture, for deposits
+	// HostedCheckout means the gateway runs its own payment page and settles out
+	// of band: the resident is sent away to pay and the booking's payment sits
+	// pending until the gateway reports back. The SPA needs this to know whether
+	// to show a card form or a "pay at C2" link.
+	HostedCheckout bool    `json:"hostedCheckout"`
 	SecretEnv      string  `json:"secretEnv,omitempty"`
 	Fields         []Field `json:"fields"`
 }
@@ -65,6 +71,25 @@ var modules = []Module{
 		Available:      true,
 		SupportsRefund: true,
 		SupportsHold:   false,
+	},
+	{
+		Kind:      KindC2,
+		Name:      "C2 payment broker",
+		Summary:   "Bill through C2: C2 notifies the citizen, hosts the checkout on a PCI-compliant gateway, and reports the result with a signed token. No card data reaches this application. The citizen must have an active consent with this service, and refunds are issued by an operator in C2, not here.",
+		Available: true,
+		// C2 refunds — but not on our say-so. Its partner API has only
+		// POST /invoices and GET /invoices/{ref}; refunding is an operator action
+		// on C2's admin surface behind WRITE_PAYMENTS. Declaring true here would
+		// tell a municipality they can refund in this back-office when they
+		// cannot, so cancellations record what is owed instead.
+		SupportsRefund: false,
+		SupportsHold:   false,
+		HostedCheckout: true,
+		// Credentials are the OIDC client id/secret this app already holds for
+		// login, so there is no new secret to declare.
+		Fields: []Field{
+			{Key: "currency", Label: "Currency", Placeholder: "CAD", Required: false},
+		},
 	},
 	{
 		Kind:      KindStripe,

@@ -67,6 +67,9 @@ var routeAccess = map[string]access{
 
 	// Public directory, availability, and the city calendar feed (§4.11 —
 	// deliberately readable without an account, to reduce enquiries).
+	// C2 posts settlements server-to-server with no session; the signed status
+	// token is the authentication, verified in the handler.
+	"POST /api/payments/c2/callback":               accessPublic,
 	"GET /api/facilities":                          accessPublic,
 	"GET /api/facilities/filter-options":           accessPublic,
 	"GET /api/facilities/{id}":                     accessPublic,
@@ -120,6 +123,7 @@ var routeAccess = map[string]access{
 	"GET /api/staff/payments":                                  accessStaff,
 	"GET /api/staff/audit":                                     accessStaff,
 	"GET /api/staff/calendar-settings":                         accessStaff,
+	"GET /api/staff/refund-obligations":                        accessStaff,
 	"GET /api/staff/payment-settings":                          accessStaff,
 
 	// Admin only.
