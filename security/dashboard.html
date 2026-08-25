@@ -143,18 +143,18 @@
 
   
   <div class="panel hero">
-    <div class="badge amber"><span class="dot">▲</span></div>
+    <div class="badge green"><span class="dot">●</span></div>
     <div class="meta">
       <h1>Facility Booking</h1>
       <div class="sub">Facility reservation portal (C2 SSO client)</div>
       <div class="facts">
-        <span><b>Passing with advisories</b> — advisories and/or checks awaiting enablement</span>
+        <span><b>All checks passing</b> — every configured check is green</span>
       </div>
       
       <div class="facts">
-        <span>Last comprehensive scan <b>2026-08-25 14:41 MDT</b></span>
+        <span>Last comprehensive scan <b>2026-08-25 14:55 MDT</b></span>
         <span>Trigger <b>manual</b></span>
-        <span>Commit <b class="mono">6bab1f4</b> (fix/security-dashboard-scan)</span>
+        <span>Commit <b class="mono">a09577e</b> (fix/security-dashboard-scan)</span>
       </div>
       
     </div>
@@ -163,14 +163,14 @@
   
   
   <div class="tiles">
-    <div class="tile ok"><div class="n">6</div><div class="l">Passing</div></div>
-    <div class="tile warn"><div class="n">1</div><div class="l">Advisories</div></div>
+    <div class="tile ok"><div class="n">7</div><div class="l">Passing</div></div>
+    <div class="tile warn"><div class="n">0</div><div class="l">Advisories</div></div>
     <div class="tile bad"><div class="n">0</div><div class="l">Failing</div></div>
     <div class="tile muted"><div class="n">0</div><div class="l">Not run</div></div>
   </div>
   <div class="bar">
-    <span class="ok" style="flex:6"></span>
-    <span class="warn" style="flex:1"></span>
+    <span class="ok" style="flex:7"></span>
+    
     
     
   </div>
@@ -219,9 +219,16 @@
         <span class="ok" style="flex:6"></span>
       </div>
       
+      <div class="tcol" title="2026-08-25 14:55 MDT — 7 pass, 0 advisory, 0 fail, 0 not run">
+        
+        
+        
+        <span class="ok" style="flex:7"></span>
+      </div>
+      
     </div>
     <div class="tlabels">
-      <div>693a8ad</div><div>693a8ad</div><div>693a8ad</div><div>693a8ad</div><div>6bab1f4</div>
+      <div>693a8ad</div><div>693a8ad</div><div>693a8ad</div><div>693a8ad</div><div>6bab1f4</div><div>a09577e</div>
     </div>
     <div class="legend">
       <span><i style="background:var(--ok)"></i>Passing</span>
@@ -254,18 +261,18 @@
         </div>
         <span class="gate">GATING</span>
         <span class="tool">govulncheck</span>
-        <a href="runs/20260825T204155Z/govulncheck.txt">View report →</a>
+        <a href="runs/20260825T205509Z/govulncheck.txt">View report →</a>
       </div>
       
-      <div class="row" data-status="warn">
-        <span class="pill warn">Advisory</span>
+      <div class="row" data-status="ok">
+        <span class="pill ok">Pass</span>
         <div class="grow">
           <div class="name">SPA deps</div>
-          <div class="sum">0 critical, 2 high</div>
+          <div class="sum">0 critical, 0 high</div>
         </div>
         
         <span class="tool">npm</span>
-        <a href="runs/20260825T204155Z/npm-audit-web.txt">View report →</a>
+        <a href="runs/20260825T205509Z/npm-audit-web.txt">View report →</a>
       </div>
       
     </div>
@@ -283,7 +290,7 @@
         </div>
         <span class="gate">GATING</span>
         <span class="tool">go</span>
-        <a href="runs/20260825T204155Z/build.txt">View report →</a>
+        <a href="runs/20260825T205509Z/build.txt">View report →</a>
       </div>
       
       <div class="row" data-status="ok">
@@ -294,7 +301,7 @@
         </div>
         <span class="gate">GATING</span>
         <span class="tool">go</span>
-        <a href="runs/20260825T204155Z/vet.txt">View report →</a>
+        <a href="runs/20260825T205509Z/vet.txt">View report →</a>
       </div>
       
       <div class="row" data-status="ok">
@@ -305,7 +312,7 @@
         </div>
         <span class="gate">GATING</span>
         <span class="tool">go test</span>
-        <a href="runs/20260825T204155Z/tests.txt">View report →</a>
+        <a href="runs/20260825T205509Z/tests.txt">View report →</a>
       </div>
       
     </div>
@@ -323,7 +330,7 @@
         </div>
         
         <span class="tool">gosec</span>
-        <a href="runs/20260825T204155Z/gosec.txt">View report →</a>
+        <a href="runs/20260825T205509Z/gosec.txt">View report →</a>
       </div>
       
     </div>
@@ -341,7 +348,7 @@
         </div>
         
         <span class="tool">gitleaks</span>
-        <a href="runs/20260825T204155Z/gitleaks.txt">View report →</a>
+        <a href="runs/20260825T205509Z/gitleaks.txt">View report →</a>
       </div>
       
     </div>
@@ -355,6 +362,21 @@
   <table>
     <thead><tr><th>When</th><th>Trigger</th><th>Commit</th><th>Composition</th><th>Result</th></tr></thead>
     <tbody>
+    
+      <tr>
+        <td>2026-08-25 14:55 MDT</td>
+        <td>manual</td>
+        <td class="mono">a09577e</td>
+        <td>
+          <span class="minibar">
+            <span class="ok" style="width:70px" title="7 pass"></span>
+            
+            
+            
+          </span>
+        </td>
+        <td><span class="pill ok">gates green</span></td>
+      </tr>
     
       <tr>
         <td>2026-08-25 14:41 MDT</td>
@@ -495,7 +517,7 @@
   
 
   <div class="foot">
-    Generated 2026-08-25 14:46 MDT · <span class="mono">go run ./cmd/security-dashboard scan</span> to refresh ·
+    Generated 2026-08-25 14:59 MDT · <span class="mono">go run ./cmd/security-dashboard scan</span> to refresh ·
     
     
   </div>
