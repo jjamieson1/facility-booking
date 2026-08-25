@@ -86,14 +86,16 @@ var routeAccess = map[string]access{
 	"GET /api/bookings/mine": accessSession,
 	// A guest holds a language preference too: it is about how we speak to them,
 	// not about durable identity.
-	"PUT /api/me/language":                accessSession,
-	"GET /api/bookings/{id}":              accessSession,
-	"GET /api/bookings/{id}/invite.ics":   accessSession,
-	"POST /api/bookings/{id}/cancel":      accessSession,
-	"GET /api/bookings/{id}/refund-quote": accessSession,
-	"POST /api/bookings/{id}/pay":         accessSession,
-	"POST /api/bookings/{id}/waiver":      accessSession,
-	"GET /api/bookings/{id}/waiver":       accessSession,
+	"PUT /api/me/language":                      accessSession,
+	"GET /api/bookings/{id}":                    accessSession,
+	"GET /api/bookings/{id}/invite.ics":         accessSession,
+	"GET /api/bookings/{id}/conditions":         accessSession,
+	"POST /api/bookings/{id}/conditions/accept": accessSession,
+	"POST /api/bookings/{id}/cancel":            accessSession,
+	"GET /api/bookings/{id}/refund-quote":       accessSession,
+	"POST /api/bookings/{id}/pay":               accessSession,
+	"POST /api/bookings/{id}/waiver":            accessSession,
+	"GET /api/bookings/{id}/waiver":             accessSession,
 
 	// Tied to a durable identity rather than to one booking. Entitlements are
 	// account-bound: a guest has no durable identity to attach one to, and the
@@ -109,6 +111,8 @@ var routeAccess = map[string]access{
 	// Staff back-office.
 	"GET /api/staff/bookings/pending":                          accessStaff,
 	"POST /api/staff/bookings/{id}/approve":                    accessStaff,
+	"POST /api/staff/bookings/{id}/approve-with-conditions":    accessStaff,
+	"GET /api/staff/bookings/awaiting-resident":                accessStaff,
 	"POST /api/staff/bookings/{id}/deny":                       accessStaff,
 	"POST /api/staff/bookings/{id}/refund":                     accessStaff,
 	"POST /api/staff/facilities":                               accessStaff,

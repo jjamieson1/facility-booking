@@ -307,7 +307,7 @@ func (s *Service) loadWindow(ctx context.Context, id string, from, to time.Time)
 	}
 	var bookings []domain.Booking
 	if err := s.db.WithContext(ctx).Where("facility_id IN ? AND status IN ? AND ends_at > ? AND starts_at < ?",
-		conflicting, []domain.BookingStatus{domain.StatusPending, domain.StatusConfirmed}, from.Add(-24*time.Hour), to.Add(24*time.Hour)).Find(&bookings).Error; err != nil {
+		conflicting, domain.ActiveStatuses(), from.Add(-24*time.Hour), to.Add(24*time.Hour)).Find(&bookings).Error; err != nil {
 		return nil, nil, nil, err
 	}
 	return rules, blackouts, bookings, nil

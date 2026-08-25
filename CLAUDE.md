@@ -140,6 +140,41 @@ This is a **sales demo** ("Rivermont Spaces"), not a production municipal deploy
 still simulated: `internal/payment` has the module registry and admin form (FAC-2), but the Stripe
 module itself is registered `Available: false` and no real gateway is wired.
 
+### Conditional approval holds the slot
+
+Staff can approve **with conditions** (§4.5/§4.8): free-text terms, an added fee, a required
+document, in any combination. The booking moves to `domain.StatusConditional` — short of
+confirmed, but **still holding its slot**, because releasing it would sell the space out from
+under a resident who is busy satisfying the conditions staff just set.
+
+That property is enforced by **`domain.ActiveStatuses()`**, now the single source for the
+slot-holding status list. It was previously duplicated in three places — the booking
+transaction's locking read, the facility calendar's window, and `Booking.Active()` — exactly the
+queries this file already warns must not drift. A status missing from the SQL list double-books;
+one missing from the Go list makes the calendar offer slots that fail on submit.
+
+**`WhatIsOutstanding` is the only gate.** Every route that could satisfy the last condition —
+accepting terms, a payment landing, a document uploading — calls `ConfirmIfSatisfied`, which
+consults it. Adding a fourth route means calling the same function, not writing a fourth check
+that could disagree.
+
+Other rules worth knowing:
+
+- **An added fee folds into `Booking.FeeCents`**, so every existing pricing, payment and
+  reporting path keeps working without learning that conditions exist. Raising the fee on an
+  already-paid booking is **refused** (`ErrFeeAlreadyPaid`): silently repricing it would leave the
+  resident owing money nobody asked them for, and the gate would then hold their booking hostage
+  to that debt.
+- **A condition set imposing nothing is rejected** — staff meaning "approve" should approve.
+- **Only the booker accepts.** An acceptance recorded by the staff member who imposed the
+  condition is worth nothing.
+- **Re-approving replaces the set**, and the delete is `Unscoped()`: `Base` carries `DeletedAt`,
+  so a soft delete leaves the row visible to the unique index and the next approval fails on a
+  duplicate key. The tests caught that one.
+- The required document reuses `internal/waiver`'s upload path rather than gaining its own — both
+  are "one document attached to this booking", and a second mechanism would mean two sets of
+  access rules over the same media.
+
 ### Notifications go through C2's partner API
 
 `internal/c2` is the client for C2's **partner API** (`{origin}/partner`) — the machine-to-machine

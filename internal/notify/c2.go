@@ -84,6 +84,11 @@ func (n *C2Notifier) BookingDenied(b domain.Booking) {
 	n.fallback.BookingDenied(b)
 }
 
+func (n *C2Notifier) BookingConditional(b domain.Booking) {
+	n.toBooker(b, func(b domain.Booking, l string) message { return bookingConditional(b, l) })
+	n.fallback.BookingConditional(b)
+}
+
 func (n *C2Notifier) BookingCancelled(b domain.Booking, _ string) {
 	n.toBooker(b, func(b domain.Booking, l string) message { return bookingCancelled(b, l) })
 	n.fallback.BookingCancelled(b, "")

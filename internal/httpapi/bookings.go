@@ -323,6 +323,8 @@ func (h bookingHandler) pay(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "payment failed")
 		return
 	}
+	// Paying may have been the last condition outstanding (§4.5).
+	h.settleConditions(r, b.ID)
 	writeJSON(w, http.StatusOK, pay)
 }
 
@@ -359,6 +361,138 @@ func (h bookingHandler) approve(w http.ResponseWriter, r *http.Request) {
 	h.notifier.BookingConfirmed(*full, h.inviteFor(r, b.ID))
 	h.recordAudit(r, "booking.approve", b.ID, "Staff approved a booking")
 	writeJSON(w, http.StatusOK, b)
+}
+
+type conditionReq struct {
+	Terms              string `json:"terms"`
+	AdditionalFeeCents int    `json:"additionalFeeCents"`
+	DocumentLabel      string `json:"documentLabel"`
+}
+
+// approveWithConditions is §4.8's "add conditions to" action: the booking is
+// approved subject to terms, an added fee, or a document, and holds its slot
+// while the resident satisfies them.
+func (h bookingHandler) approveWithConditions(w http.ResponseWriter, r *http.Request) {
+	user := auth.FromContext(r.Context())
+	id := chi.URLParam(r, "id")
+
+	var req conditionReq
+	if !decode(w, r, &req) {
+		return
+	}
+	in := booking.ConditionInput{
+		Terms:              req.Terms,
+		AdditionalFeeCents: req.AdditionalFeeCents,
+		DocumentLabel:      req.DocumentLabel,
+	}
+
+	b, err := h.bookings.ApproveWithConditions(r.Context(), user.ID, id, in)
+	switch {
+	case errors.Is(err, booking.ErrEmptyCondition):
+		writeError(w, http.StatusBadRequest, "a conditional approval must impose at least one condition")
+		return
+	case errors.Is(err, booking.ErrFeeAlreadyPaid):
+		writeError(w, http.StatusConflict, "this booking is already paid; an added fee needs a separate charge")
+		return
+	case err != nil:
+		bookingError(w, err)
+		return
+	}
+
+	full, _ := h.bookings.Get(r.Context(), b.ID)
+	if full != nil {
+		h.notifier.BookingConditional(*full)
+	}
+	h.recordAudit(r, "booking.approve.conditional", b.ID, booking.DescribeConditions(in))
+	writeJSON(w, http.StatusOK, b)
+}
+
+// acceptConditions records the resident agreeing to the terms, then re-checks
+// whether that was the last thing outstanding.
+func (h bookingHandler) acceptConditions(w http.ResponseWriter, r *http.Request) {
+	user := auth.FromContext(r.Context())
+	id := chi.URLParam(r, "id")
+
+	if _, err := h.bookings.AcceptConditions(r.Context(), user, id); err != nil {
+		if errors.Is(err, booking.ErrNoConditions) {
+			writeError(w, http.StatusConflict, "this booking has no conditions to accept")
+			return
+		}
+		bookingError(w, err)
+		return
+	}
+	h.settleConditions(r, id)
+	writeJSON(w, http.StatusOK, h.conditionState(r, id))
+}
+
+// conditions reports what is still outstanding, in the resident's terms. §4.5
+// requires they be told exactly what remains — "not confirmed yet" is not
+// something anyone can act on.
+func (h bookingHandler) conditions(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.conditionState(r, chi.URLParam(r, "id")))
+}
+
+// conditionState is the outstanding-items view for one booking.
+func (h bookingHandler) conditionState(r *http.Request, id string) booking.Outstanding {
+	b, err := h.bookings.Get(r.Context(), id)
+	if err != nil || b == nil {
+		return booking.Outstanding{AllSatisfied: true}
+	}
+	return booking.WhatIsOutstanding(*b, b.Payment, h.hasConditionDocument(r, id))
+}
+
+// hasConditionDocument asks the waiver service whether a document is on file.
+// The upload path is shared with the facility-level waiver (§4.11): both are
+// "one document attached to this booking", and giving conditions a second
+// upload mechanism would mean two sets of access rules over the same media.
+func (h bookingHandler) hasConditionDocument(r *http.Request, id string) bool {
+	return h.waiver != nil && h.waiver.Has(r.Context(), id)
+}
+
+// settleConditions confirms the booking if nothing is outstanding, and notifies
+// on the transition.
+//
+// Called from every route that can satisfy the last condition — accepting terms,
+// paying, uploading — so there is no path that leaves a fully-satisfied booking
+// sitting conditional.
+func (h bookingHandler) settleConditions(r *http.Request, id string) {
+	if h.bookings == nil {
+		return
+	}
+	_, confirmed, err := h.bookings.ConfirmIfSatisfied(r.Context(), id, h.hasConditionDocument(r, id))
+	if err != nil || !confirmed {
+		return
+	}
+	full, _ := h.bookings.Get(r.Context(), id)
+	if full != nil {
+		h.notifier.BookingConfirmed(*full, h.inviteFor(r, id))
+	}
+	h.recordAudit(r, "booking.conditions.satisfied", id, "All conditions met; booking confirmed")
+}
+
+// awaitingResident lists conditionally-approved bookings still waiting on the
+// resident — §4.8's "which of these are stuck, and on what". Without it a
+// conditional approval is fire-and-forget: staff impose terms and never learn
+// whether anyone acted.
+func (h bookingHandler) awaitingResident(w http.ResponseWriter, r *http.Request) {
+	list, err := h.bookings.AwaitingResident(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load conditional bookings")
+		return
+	}
+	type row struct {
+		domain.Booking
+		Outstanding booking.Outstanding `json:"outstanding"`
+	}
+	out := make([]row, 0, len(list))
+	for i := range list {
+		b := list[i]
+		out = append(out, row{
+			Booking:     b,
+			Outstanding: booking.WhatIsOutstanding(b, b.Payment, h.hasConditionDocument(r, b.ID)),
+		})
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (h bookingHandler) deny(w http.ResponseWriter, r *http.Request) {

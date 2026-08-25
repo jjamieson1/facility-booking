@@ -121,7 +121,30 @@ export interface Slot {
   available: boolean;
 }
 
-export type BookingStatus = "pending" | "confirmed" | "denied" | "cancelled";
+// "conditional" is approved subject to conditions the resident has not met yet
+// (§4.5). It is short of confirmed but still holds the slot.
+export type BookingStatus = "pending" | "conditional" | "confirmed" | "denied" | "cancelled";
+
+// BookingCondition is what staff attached to a conditional approval.
+export interface BookingCondition {
+  id: string;
+  bookingId: string;
+  terms: string;
+  additionalFeeCents: number;
+  documentLabel: string;
+  setById: string;
+  acceptedAt?: string;
+}
+
+// Outstanding is what still stands between a conditional booking and
+// confirmation — a list rather than a flag, because §4.5 requires the resident
+// be told exactly what remains.
+export interface Outstanding {
+  acceptTerms: boolean;
+  payCents: number;
+  uploadLabel: string;
+  allSatisfied: boolean;
+}
 // "pending" is a bill raised at a hosted gateway with no money yet — distinct
 // from "unpaid" (nothing raised) and from "paid".
 export type PaymentStatus = "unpaid" | "pending" | "paid" | "refunded";
@@ -167,6 +190,7 @@ export interface Booking {
   feeCents: number;
   payment?: Payment;
   waiver?: WaiverDocument;
+  condition?: BookingCondition;
 }
 
 export interface WaiverDocument {
@@ -568,6 +592,11 @@ export const api = {
 
   pendingBookings: () => get<Booking[]>("/staff/bookings/pending"),
   approve: (id: string) => post<Booking>(`/staff/bookings/${id}/approve`),
+  approveWithConditions: (id: string, c: { terms: string; additionalFeeCents: number; documentLabel: string }) =>
+    post<Booking>(`/staff/bookings/${id}/approve-with-conditions`, c),
+  awaitingResident: () => get<(Booking & { outstanding: Outstanding })[]>("/staff/bookings/awaiting-resident"),
+  bookingConditions: (id: string) => get<Outstanding>(`/bookings/${id}/conditions`),
+  acceptConditions: (id: string) => post<Outstanding>(`/bookings/${id}/conditions/accept`, {}),
   deny: (id: string) => post<Booking>(`/staff/bookings/${id}/deny`),
   refund: (id: string) => post<Payment>(`/staff/bookings/${id}/refund`),
   report: (period: Period = "quarter") => get<Dashboard>(`/staff/reports/summary?period=${period}`),

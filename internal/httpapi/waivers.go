@@ -14,6 +14,11 @@ import (
 
 type waiverHandler struct {
 	svc *waiver.Service
+	// onUploaded re-checks a conditional booking after a document arrives —
+	// uploading may have been the last thing outstanding (§4.5). A func rather
+	// than the booking handler itself, so this package's upload path does not
+	// grow a dependency on approvals.
+	onUploaded func(r *http.Request, bookingID string)
 }
 
 // upload accepts a multipart "file" waiver/insurance doc for the caller's
@@ -49,6 +54,9 @@ func (h waiverHandler) upload(w http.ResponseWriter, r *http.Request) {
 	case err != nil:
 		writeError(w, http.StatusInternalServerError, "upload failed")
 	default:
+		if h.onUploaded != nil {
+			h.onUploaded(r, chi.URLParam(r, "id"))
+		}
 		writeJSON(w, http.StatusOK, b)
 	}
 }

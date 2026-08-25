@@ -165,7 +165,7 @@ func loadWindow(tx *gorm.DB, facilityID string, start, end time.Time) ([]domain.
 	var bookings []domain.Booking
 	if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 		Where("facility_id IN ? AND status IN ? AND ends_at > ? AND starts_at < ?",
-			conflicting, []domain.BookingStatus{domain.StatusPending, domain.StatusConfirmed},
+			conflicting, domain.ActiveStatuses(),
 			start.Add(-24*time.Hour), end.Add(24*time.Hour)).
 		Find(&bookings).Error; err != nil {
 		return nil, nil, nil, err
@@ -379,7 +379,7 @@ func (s *Service) UpcomingForUser(ctx context.Context, userID string) ([]domain.
 	var out []domain.Booking
 	err := s.db.WithContext(ctx).Preload("Facility").
 		Where("user_id = ? AND starts_at > ? AND status IN ?",
-			userID, time.Now(), []domain.BookingStatus{domain.StatusConfirmed, domain.StatusPending}).
+			userID, time.Now(), domain.ActiveStatuses()).
 		Order("starts_at asc").Find(&out).Error
 	return out, err
 }
