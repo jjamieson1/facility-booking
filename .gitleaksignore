@@ -1,0 +1,21 @@
+# Confirmed false positives, pinned by fingerprint.
+#
+# Each entry is commit:file:rule:line, so it suppresses exactly one finding in
+# one historical commit. It cannot hide a future leak — not even in the same
+# file — which is why fingerprints are used here rather than a path or rule
+# allowlist.
+#
+# All three are deliberately-invalid JWTs in the payment-callback test, proving
+# that POST /api/payments/c2/callback rejects forgeries. That endpoint is
+# unauthenticated by necessity (C2 posts server-to-server with no session or
+# shared secret), so the signature is its entire authentication and the test
+# exists to keep it that way. The tokens carry nothing: verified by decoding
+# them, the payloads hold a made-up invoice reference "FB-1" and the signatures
+# literally read "not-a-signature" and "sig".
+#
+# The literals no longer exist in the working tree — fakeJWT assembles them at
+# runtime — but they remain in this merged commit, which is not worth rewriting
+# published history over.
+b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:generic-api-key:59
+b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:jwt:38
+b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:jwt:39

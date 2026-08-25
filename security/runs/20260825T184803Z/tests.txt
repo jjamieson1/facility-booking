@@ -1,0 +1,1126 @@
+?   	github.com/jjamieson1/facility-booking/cmd/security-dashboard	[no test files]
+?   	github.com/jjamieson1/facility-booking/cmd/server	[no test files]
+ok  	github.com/jjamieson1/facility-booking/internal/auditlog	0.311s
+--- FAIL: TestCloseSessionsForSubject (0.00s)
+    backchannel_test.go:60: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCloseSessionReturnsIDToken (0.00s)
+    logout_test.go:27: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCloseSessionUnknownID (0.00s)
+    logout_test.go:59: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestLogoutURL (0.00s)
+    logout_test.go:73: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestLogoutURLWithoutIDToken (0.00s)
+    logout_test.go:98: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUpsertUserResidencyClaim (0.00s)
+    --- FAIL: TestUpsertUserResidencyClaim/active_status (0.00s)
+        residency_test.go:33: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+    --- FAIL: TestUpsertUserResidencyClaim/active_mixed_case (0.00s)
+        residency_test.go:33: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+    --- FAIL: TestUpsertUserResidencyClaim/inactive_status (0.00s)
+        residency_test.go:33: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+    --- FAIL: TestUpsertUserResidencyClaim/empty_status (0.00s)
+        residency_test.go:33: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUpsertUserResidencyRefresh (0.00s)
+    residency_test.go:49: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/auth	0.541s
+ok  	github.com/jjamieson1/facility-booking/internal/availability	1.259s
+--- FAIL: TestConditionalBookingStillHoldsItsSlot (0.00s)
+    conditions_test.go:51: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConditionalBookingBlocksAnotherRequest (0.00s)
+    conditions_test.go:83: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestEmptyConditionSetIsRejected (0.00s)
+    conditions_test.go:106: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAdditionalFeeIsAddedToTheBooking (0.00s)
+    conditions_test.go:121: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAddingAFeeToAPaidBookingIsRefused (0.00s)
+    conditions_test.go:145: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestOutstandingListsEachUnmetCondition (0.00s)
+    conditions_test.go:167: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConfirmationRequiresEveryCondition (0.00s)
+    conditions_test.go:196: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestOnlyTheBookerCanAcceptConditions (0.00s)
+    conditions_test.go:239: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAcceptingConditionsIsIdempotent (0.00s)
+    conditions_test.go:256: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConditionalApprovalIsAudited (0.00s)
+    conditions_test.go:286: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAwaitingResidentListsConditionalBookings (0.00s)
+    conditions_test.go:311: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReapprovingReplacesTheConditionSet (0.00s)
+    conditions_test.go:347: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBookingParentBlocksChild (0.00s)
+    hierarchy_test.go:42: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBookingChildBlocksParent (0.00s)
+    hierarchy_test.go:57: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSiblingsRemainIndependent (0.00s)
+    hierarchy_test.go:73: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConcurrentParentAndChildRequests (0.00s)
+    hierarchy_test.go:90: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConcurrentHierarchyRequests (0.00s)
+    hierarchy_test.go:131: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRelatedSpaceFreeAtAnotherTime (0.00s)
+    hierarchy_test.go:189: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRequestAutoConfirm (0.00s)
+    service_test.go:43: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRequestRequiresApproval (0.00s)
+    service_test.go:58: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNoDoubleBooking (0.00s)
+    service_test.go:72: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestApproveDenyCancelFlow (0.00s)
+    service_test.go:92: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReschedule (0.00s)
+    service_test.go:123: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidentPricing (0.00s)
+    service_test.go:163: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRequestRecurring (0.00s)
+    service_test.go:191: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancelForbiddenForOtherResident (0.00s)
+    service_test.go:224: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/booking	0.802s
+ok  	github.com/jjamieson1/facility-booking/internal/c2	1.808s
+--- FAIL: TestGetDefaultsToOneWayICS (0.00s)
+    settings_test.go:32: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetAvailableModuleRoundTrips (0.00s)
+    settings_test.go:47: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSelectingUnbuiltModuleFallsBackButRecordsChoice (0.00s)
+    settings_test.go:69: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetPersistsConfigAndActor (0.00s)
+    settings_test.go:96: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetIsSingleton (0.00s)
+    settings_test.go:118: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetRejectsBadInput (0.00s)
+    settings_test.go:139: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetWritesAuditRow (0.00s)
+    settings_test.go:163: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestGetFallsBackOnUnknownStoredKind (0.00s)
+    settings_test.go:181: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/calendar	1.554s
+ok  	github.com/jjamieson1/facility-booking/internal/config	1.023s
+?   	github.com/jjamieson1/facility-booking/internal/db	[no test files]
+?   	github.com/jjamieson1/facility-booking/internal/domain	[no test files]
+--- FAIL: TestResolveRevalidatesSilently (0.00s)
+    service_test.go:59: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUnreachableProviderServesLastGood (0.00s)
+    service_test.go:86: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUnreachableProviderWithExpiredCacheFallsBack (0.00s)
+    service_test.go:109: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUnknownRefNeedsProving (0.00s)
+    service_test.go:132: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDeterminationFromAnotherProviderIsNotHonoured (0.00s)
+    service_test.go:153: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNoDeterminationIsNotHeld (0.00s)
+    service_test.go:178: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestProveRecordsDenial (0.00s)
+    service_test.go:193: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidentFlagTracksDetermination (0.00s)
+    service_test.go:217: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/entitlement	1.996s
+--- FAIL: TestFilterCapacityAndAccessory (0.00s)
+    filter_test.go:58: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterRequiresAllAccessories (0.00s)
+    filter_test.go:74: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterIgnoresDuplicateAccessories (0.00s)
+    filter_test.go:90: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterAccessibilityNeeds (0.00s)
+    filter_test.go:102: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterArea (0.00s)
+    filter_test.go:128: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterOptionsListOnlyAccessoriesInUse (0.00s)
+    filter_test.go:158: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterCostRangeFollowsViewerPrice (0.00s)
+    filter_test.go:179: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterZeroMaxFeeIsNoCeiling (0.00s)
+    filter_test.go:205: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterCostFloor (0.00s)
+    filter_test.go:220: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestParameterFiltersCombineWithWindow (0.00s)
+    filter_test.go:240: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConflictSetIncludesAncestorsAndDescendants (0.00s)
+    hierarchy_test.go:27: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConflictSetExcludesSiblings (0.00s)
+    hierarchy_test.go:57: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConflictSetIsSorted (0.00s)
+    hierarchy_test.go:75: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConflictSetTerminatesOnACycle (0.00s)
+    hierarchy_test.go:93: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDayAvailabilityReflectsParentBooking (0.00s)
+    hierarchy_test.go:119: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSearchByWindow (0.00s)
+    service_test.go:47: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCalendarStatuses (0.00s)
+    service_test.go:100: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBlackoutBlocksBooking (0.00s)
+    service_test.go:140: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestTranslateAppliesFrench (0.00s)
+    translate_test.go:28: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestPartialTranslationFallsBackPerField (0.00s)
+    translate_test.go:57: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUntranslatedFacilityIsReported (0.00s)
+    translate_test.go:83: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDefaultLanguageIsUntouched (0.00s)
+    translate_test.go:102: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSavingDefaultLanguageUpdatesTheBaseRow (0.00s)
+    translate_test.go:120: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSaveTranslationUpserts (0.00s)
+    translate_test.go:146: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestTranslationsIncludeTheDefaultLanguage (0.00s)
+    translate_test.go:170: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAccessoryNamesAreTranslated (0.00s)
+    translate_test.go:190: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/facility	2.186s
+--- FAIL: TestLogoutReturnsC2LogoutURL (0.00s)
+    auth_test.go:44: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCalendarSettingsAuthorization (0.00s)
+    calendar_settings_test.go:83: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCalendarSettingsGetReturnsModulesAndSelection (0.00s)
+    calendar_settings_test.go:117: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCalendarSettingsUpdateRejectsBadInput (0.00s)
+    calendar_settings_test.go:137: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCalendarSettingsUpdateReportsFallback (0.00s)
+    calendar_settings_test.go:162: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidencyCannotBeSelfDeclared (0.00s)
+    entitlements_test.go:17: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidencyGrantedForAnAddressOnTheRoll (0.00s)
+    entitlements_test.go:50: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestProveRejectsACallerSuppliedOutcome (0.00s)
+    entitlements_test.go:70: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDescriptorEndpoint (0.00s)
+    entitlements_test.go:87: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDescriptorUnknownType (0.00s)
+    entitlements_test.go:104: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBookingStampsTheEntitlementsThatPricedIt (0.00s)
+    entitlements_test.go:115: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBookingWithoutEntitlementUsesNonResidentRate (0.00s)
+    entitlements_test.go:166: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCostFilterUsesSessionResidencyNotQueryString (0.00s)
+    facility_filter_test.go:64: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAccessoryParamsRepeatForAllOf (0.00s)
+    facility_filter_test.go:100: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFilterOptionsArePublicAndNeverNull (0.00s)
+    facility_filter_test.go:133: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestArrayFieldsSerialiseAsEmptyNotNull (0.00s)
+    json_arrays_test.go:20: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestModuleFieldsAreNeverNull (0.00s)
+    json_arrays_test.go:88: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSettlementCallbackNeverAppliesAnUnverifiedToken (0.00s)
+    payment_callback_test.go:29: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSettlementCallbackDoesNotExplainWhyATokenFailed (0.00s)
+    payment_callback_test.go:56: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancelWithinWindowRefundsPerPolicy (0.00s)
+    policy_test.go:68: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancelInPartialTierRefundsHalf (0.00s)
+    policy_test.go:106: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancelOutsideWindowRefundsNothing (0.00s)
+    policy_test.go:130: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancelUnpaidBookingRefundsNothing (0.00s)
+    policy_test.go:158: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundQuoteMatchesTheCancellation (0.00s)
+    policy_test.go:178: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundQuoteRejectsAnotherResident (0.00s)
+    policy_test.go:205: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestCancellationPolicyIsPublic (0.00s)
+    policy_test.go:219: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRescheduleRefusedInsideCutoff (0.00s)
+    policy_test.go:237: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRescheduleAllowedOutsideCutoff (0.00s)
+    policy_test.go:251: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestStaffPartialRefundOverride (0.00s)
+    policy_test.go:265: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestEveryRouteIsClassified (0.00s)
+    route_access_test.go:214: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestGuestSessionCannotReachAccountRoutes (0.00s)
+    route_access_test.go:243: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidentReachesAccountRoutes (0.00s)
+    route_access_test.go:273: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestGuestOwnershipChecksBehaveLikeAnAccount (0.00s)
+    route_access_test.go:294: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestAnonymousIsRejectedFromNonPublicRoutes (0.00s)
+    route_access_test.go:354: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/httpapi	2.359s
+ok  	github.com/jjamieson1/facility-booking/internal/media	2.488s
+--- FAIL: TestNotificationUsesTheRecipientsLanguage (0.00s)
+    --- FAIL: TestNotificationUsesTheRecipientsLanguage/en (0.00s)
+        c2_test.go:95: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+    --- FAIL: TestNotificationUsesTheRecipientsLanguage/fr (0.00s)
+        c2_test.go:95: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+              Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+              Then export a DSN with NO database name, e.g.
+              FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+              (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestConfirmationCarriesTheInviteAsALink (0.00s)
+    c2_test.go:115: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestGuestBookerIsSkipped (0.00s)
+    c2_test.go:136: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSubmittedNotifiesBookerAndStaff (0.00s)
+    c2_test.go:148: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestResidentsAreNotToldToApprove (0.00s)
+    c2_test.go:167: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNoConsentIsNotAFailure (0.00s)
+    c2_test.go:186: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestProviderFailureIsSwallowed (0.00s)
+    c2_test.go:199: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReminderCarriesTheInstructions (0.00s)
+    c2_test.go:210: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestEveryMessageHasAUsefulShortForm (0.00s)
+    c2_test.go:223: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNotificationUsesTranslatedFacilityName (0.00s)
+    c2_test.go:250: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestTranslationDoesNotLeakBetweenRecipients (0.00s)
+    c2_test.go:273: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/notify	2.397s
+--- FAIL: TestHostedPayRecordsPendingNotPaid (0.00s)
+    broker_test.go:50: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestHostedBillReferenceIsStableAcrossRetries (0.00s)
+    broker_test.go:76: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestHostedBillCarriesSubjectNotPersonalData (0.00s)
+    broker_test.go:100: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestHostedPayRejectsGuestBooker (0.00s)
+    broker_test.go:123: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundRecordsObligationWhenGatewayRefuses (0.00s)
+    broker_test.go:142: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundObligationIsIdempotent (0.00s)
+    broker_test.go:179: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestPaySuccessRecordsSucceededTxn (0.00s)
+    payment_test.go:49: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestPayDeclineRecordsFailedTxnAndNoPayment (0.00s)
+    payment_test.go:77: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundRecordsRefundTxn (0.00s)
+    payment_test.go:108: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReconcileWindowScopesTotalsAndRows (0.00s)
+    payment_test.go:127: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReconcilePagingAndFilter (0.00s)
+    payment_test.go:166: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReconcileSummary (0.00s)
+    payment_test.go:227: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestDefaultsToTheSimulatedGateway (0.00s)
+    settings_test.go:34: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSelectingUnbuiltModuleFallsBackAndWarns (0.00s)
+    settings_test.go:51: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetRejectsBadInput (0.00s)
+    settings_test.go:94: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSecretsCannotBeStoredThroughTheForm (0.00s)
+    settings_test.go:120: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetIsSingletonAndAudited (0.00s)
+    settings_test.go:137: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestUnknownStoredKindFallsBack (0.00s)
+    settings_test.go:164: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundRefusesAProviderMismatch (0.00s)
+    settings_test.go:181: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSettlementMarksPendingPaymentPaid (0.00s)
+    settlement_test.go:47: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSettlementIsIdempotentOnGatewayReference (0.00s)
+    settlement_test.go:65: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestPartialRefundLeavesPaymentPaid (0.00s)
+    settlement_test.go:85: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestFullRefundMarksPaymentRefunded (0.00s)
+    settlement_test.go:104: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRefundSettlementClosesTheObligation (0.00s)
+    settlement_test.go:122: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSettlementRejectsForeignReference (0.00s)
+    settlement_test.go:151: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/payment	2.436s
+--- FAIL: TestForPrefersFacilityPolicyThenDefault (0.00s)
+    policy_test.go:113: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestModificationCutoff (0.00s)
+    policy_test.go:154: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/policy	2.493s
+--- FAIL: TestScanRemindsOnceForImminentConfirmed (0.00s)
+    reminders_test.go:34: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/reminders	2.517s
+--- FAIL: TestSummarizeMetrics (0.00s)
+    reports_test.go:21: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/reports	2.493s
+--- FAIL: TestRelocateImagesRewritesSeededOffsiteURLs (0.00s)
+    images_test.go:26: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRelocateImagesFillsEmptyHalfPhotos (0.00s)
+    images_test.go:44: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRelocateImagesLeavesOperatorChoicesAlone (0.00s)
+    images_test.go:67: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBackfillAreasFillsSeededFacilities (0.00s)
+    images_test.go:92: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestBackfillAreasLeavesStaffChoiceAlone (0.00s)
+    images_test.go:113: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSeededFacilitiesAllCarryLocalPhotos (0.00s)
+    images_test.go:134: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRunSeedsTranslationsOnFirstBoot (0.00s)
+    seed_test.go:19: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRunIsIdempotentAndDoesNotOverwriteEdits (0.00s)
+    seed_test.go:55: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/seed	2.530s
+--- FAIL: TestStatusForSubjectBuildsPayload (0.00s)
+    servicecard_test.go:62: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestStatusForSubjectNoBookings (0.00s)
+    servicecard_test.go:121: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestStatusWaitlistOnly (0.00s)
+    servicecard_test.go:151: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestStatusForSubjectUnknown (0.00s)
+    servicecard_test.go:172: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/servicecard	2.519s
+?   	github.com/jjamieson1/facility-booking/internal/testdb	[no test files]
+--- FAIL: TestReleasesBookingUnpaidPastTheHoldWindow (0.00s)
+    unpaid_test.go:68: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestKeepsBookingStillInsideTheHoldWindow (0.00s)
+    unpaid_test.go:86: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNeverReleasesAPaidBooking (0.00s)
+    unpaid_test.go:101: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestLeavesBookingsThatHaveAlreadyStarted (0.00s)
+    unpaid_test.go:115: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestReleaseClearsThePendingBill (0.00s)
+    unpaid_test.go:129: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSkipsAlreadyCancelledBookings (0.00s)
+    unpaid_test.go:147: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/unpaid	2.521s
+--- FAIL: TestInviteExistingUserPromotes (0.00s)
+    users_test.go:31: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestInviteNewEmailCreatesGrant (0.00s)
+    users_test.go:57: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestInviteRejectsBadInput (0.00s)
+    users_test.go:83: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetRoleGuards (0.00s)
+    users_test.go:94: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestSetRolePromoteAndRevoke (0.00s)
+    users_test.go:109: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestRevokeInvite (0.00s)
+    users_test.go:134: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/users	2.518s
+--- FAIL: TestJoinAndNotifyFreed (0.00s)
+    service_test.go:33: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestNotifyFreedIgnoresNonOverlapping (0.00s)
+    service_test.go:72: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+--- FAIL: TestExpireStale (0.00s)
+    service_test.go:89: FB_TEST_MYSQL_DSN is not set. These tests run against MariaDB only.
+          Create the database and grants:  mariadb -u root -p < scripts/db-setup.sql
+          Then export a DSN with NO database name, e.g.
+          FB_TEST_MYSQL_DSN='facility_app:PASSWORD@tcp(127.0.0.1:3306)/?parseTime=true&loc=UTC&charset=utf8mb4'
+          (or put it in .env and run: set -a; . ./.env; set +a; go test ./... -p 4)
+FAIL
+FAIL	github.com/jjamieson1/facility-booking/internal/waitlist	2.572s
+?   	github.com/jjamieson1/facility-booking/internal/waiver	[no test files]
+FAIL
