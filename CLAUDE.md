@@ -575,3 +575,16 @@ non-trivial work:
   API hardening, OWASP Top 10, secrets, dependencies, the shared-server deploy rules (§7), and
   media/file-upload defenses (§7, second one) — sniff magic bytes, exclude SVG, re-encode
   images, store outside the web root, serve through the app with `nosniff` + locking CSP.
+
+## Health reporting (security dashboard)
+
+This app reports to C2's Health dashboard via `cmd/security-dashboard` + `security/config.json`.
+
+To fix and rescan:
+1. `go run ./cmd/security-dashboard scan` and read `security/runs/<newest>.json` + raw reports.
+2. Fix every non-`pass` gating check. Real fixes for real issues; for verified false
+   positives use a documented suppression (`#nosec <rule> -- <reason>` for gosec) — never
+   suppress unverified. Bump `go.mod` to the patched toolchain for govulncheck stdlib CVEs.
+3. After each change: `go build ./...` && `go test ./...`.
+4. Re-run `scan` until gating checks pass, then `go run ./cmd/security-dashboard bundle > health.json`.
+5. Upload health.json in C2 admin → Health → Add application report.

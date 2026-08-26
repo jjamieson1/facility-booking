@@ -1,0 +1,42 @@
+Finding:     "status_token=[1;3;mREDACTED[0m"
+Secret:      [1;3;mREDACTED[0m
+RuleID:      generic-api-key
+Entropy:     4.758691
+File:        internal/httpapi/payment_callback_test.go
+Line:        59
+Commit:      b17511430e5f094ae166728ca5be393cb0ab01ca
+Author:      jjamieson1
+Email:       jjamie@gmail.com
+Date:        2026-08-24T18:52:21Z
+Fingerprint: b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:generic-api-key:59
+Link:        https://github.com/jjamieson1/facility-booking/blob/b17511430e5f094ae166728ca5be393cb0ab01ca/internal/httpapi/payment_callback_test.go#L59
+
+Finding:     ...one", "status_token=[1;3;mREDACTED[0m"},
+Secret:      [1;3;mREDACTED[0m
+RuleID:      jwt
+Entropy:     4.653599
+File:        internal/httpapi/payment_callback_test.go
+Line:        38
+Commit:      b17511430e5f094ae166728ca5be393cb0ab01ca
+Author:      jjamieson1
+Email:       jjamie@gmail.com
+Date:        2026-08-24T18:52:21Z
+Fingerprint: b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:jwt:38
+Link:        https://github.com/jjamieson1/facility-booking/blob/b17511430e5f094ae166728ca5be393cb0ab01ca/internal/httpapi/payment_callback_test.go#L38
+
+Finding:     ...ged", "status_token=[1;3;mREDACTED[0m"},
+Secret:      [1;3;mREDACTED[0m
+RuleID:      jwt
+Entropy:     4.955415
+File:        internal/httpapi/payment_callback_test.go
+Line:        39
+Commit:      b17511430e5f094ae166728ca5be393cb0ab01ca
+Author:      jjamieson1
+Email:       jjamie@gmail.com
+Date:        2026-08-24T18:52:21Z
+Fingerprint: b17511430e5f094ae166728ca5be393cb0ab01ca:internal/httpapi/payment_callback_test.go:jwt:39
+Link:        https://github.com/jjamieson1/facility-booking/blob/b17511430e5f094ae166728ca5be393cb0ab01ca/internal/httpapi/payment_callback_test.go#L39
+
+[90m12:48PM[0m [32mINF[0m [1m12 commits scanned.[0m
+[90m12:48PM[0m [32mINF[0m [1mscanned ~1586284 bytes (1.59 MB) in 1.29s[0m
+[90m12:48PM[0m [33mWRN[0m [1mleaks found: 3[0m

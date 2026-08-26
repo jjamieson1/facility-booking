@@ -1,0 +1,28 @@
+?   	github.com/jjamieson1/facility-booking/cmd/security-dashboard	[no test files]
+?   	github.com/jjamieson1/facility-booking/cmd/server	[no test files]
+ok  	github.com/jjamieson1/facility-booking/internal/auditlog	0.513s
+ok  	github.com/jjamieson1/facility-booking/internal/auth	49.528s
+ok  	github.com/jjamieson1/facility-booking/internal/availability	0.614s
+ok  	github.com/jjamieson1/facility-booking/internal/booking	141.172s
+ok  	github.com/jjamieson1/facility-booking/internal/brand	0.901s
+ok  	github.com/jjamieson1/facility-booking/internal/c2	0.929s
+ok  	github.com/jjamieson1/facility-booking/internal/calendar	40.184s
+ok  	github.com/jjamieson1/facility-booking/internal/config	0.409s
+?   	github.com/jjamieson1/facility-booking/internal/db	[no test files]
+?   	github.com/jjamieson1/facility-booking/internal/domain	[no test files]
+ok  	github.com/jjamieson1/facility-booking/internal/entitlement	41.105s
+ok  	github.com/jjamieson1/facility-booking/internal/facility	136.962s
+ok  	github.com/jjamieson1/facility-booking/internal/httpapi	181.121s
+ok  	github.com/jjamieson1/facility-booking/internal/media	0.310s
+ok  	github.com/jjamieson1/facility-booking/internal/notify	60.347s
+ok  	github.com/jjamieson1/facility-booking/internal/payment	125.876s
+ok  	github.com/jjamieson1/facility-booking/internal/policy	10.631s
+ok  	github.com/jjamieson1/facility-booking/internal/reminders	5.386s
+ok  	github.com/jjamieson1/facility-booking/internal/reports	6.269s
+ok  	github.com/jjamieson1/facility-booking/internal/seed	55.767s
+ok  	github.com/jjamieson1/facility-booking/internal/servicecard	21.598s
+?   	github.com/jjamieson1/facility-booking/internal/testdb	[no test files]
+ok  	github.com/jjamieson1/facility-booking/internal/unpaid	28.889s
+ok  	github.com/jjamieson1/facility-booking/internal/users	20.320s
+ok  	github.com/jjamieson1/facility-booking/internal/waitlist	12.801s
+?   	github.com/jjamieson1/facility-booking/internal/waiver	[no test files]
