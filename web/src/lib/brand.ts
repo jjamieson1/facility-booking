@@ -18,6 +18,15 @@ export const brand = {
   // replaces the tile in App.tsx with an <img>, which is why the tile is one
   // component and not repeated.
   mark: "R",
+  // The municipality alone, for sentences that name the city rather than the
+  // service: "Browse Rivermont's facilities", "your Rivermont account". Kept
+  // separate from `name` because substituting the service name there reads as
+  // nonsense — "Browse Rivermont Spaces's facilities". Mirrors brand.Short() on
+  // the API side, which exists for the same reason.
+  //
+  // i18n.ts feeds this to every translation as the {{city}} variable, so the
+  // strings themselves never name the municipality.
+  short: "Rivermont",
   // Appended to the service name in the browser tab, so a tab in a crowded
   // window still says what the page is for.
   tagline: "Book a municipal facility",
