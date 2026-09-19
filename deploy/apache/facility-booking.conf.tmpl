@@ -1,0 +1,87 @@
+# Rendered from deploy/apache/facility-booking.conf.tmpl.
+# Do not edit the rendered copy; it is overwritten on the next deploy.
+#
+# Apache vhost for facility-booking. Serves the SPA as static files and
+# reverse-proxies the API. The @@BASE_PATH@@ prefix is STRIPPED here, so the Go
+# service keeps serving /api and /healthz at its root and FB_BASE_PATH stays
+# empty.
+#
+# Requires: a2enmod proxy proxy_http headers rewrite ssl
+<VirtualHost *:80>
+    ServerName @@DOMAIN@@
+    # Keep the ACME path on HTTP so renewals work.
+    <Location "/.well-known/acme-challenge">
+        Require all granted
+    </Location>
+    RedirectMatch permanent ^(?!/\.well-known/acme-challenge)(.*)$ https://@@DOMAIN@@$1
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName @@DOMAIN@@
+
+    SSLEngine on
+    SSLCertificateFile      /etc/letsencrypt/live/@@DOMAIN@@/fullchain.pem
+    SSLCertificateKeyFile   /etc/letsencrypt/live/@@DOMAIN@@/privkey.pem
+    SSLProtocol             -all +TLSv1.2 +TLSv1.3
+    SSLHonorCipherOrder     off
+
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # The SPA's own CSP. The API sets its own, much stricter, on every JSON
+    # response (internal/httpapi/security.go) — this one governs the documents
+    # Apache serves.
+    #
+    # img-src allows data: for the inline placeholder a facility photo falls
+    # back to, and blob: for the map tiles. connect-src is 'self' because the
+    # SPA derives its API base from its own origin; a CDN would need adding
+    # here as well as in the facility image URLs.
+    Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+    # ---- The API ----
+    # Trailing slashes on both sides are what strips the prefix: the Go service
+    # receives /api/..., never @@BASE_PATH@@/api/....
+    #
+    # This is also the path C2 posts payment settlements to
+    # (@@BASE_PATH@@/api/payments/c2/callback), server-to-server with no
+    # session — it must stay reachable from the public internet.
+    ProxyPreserveHost On
+    ProxyPass        @@BASE_PATH@@/api/ http://127.0.0.1:@@PORT@@/api/
+    ProxyPassReverse @@BASE_PATH@@/api/ http://127.0.0.1:@@PORT@@/api/
+
+    # Anything the app serves OUTSIDE the proxied prefix needs its own line, or
+    # the SPA history fallback below answers 200 with index.html and a broken
+    # endpoint looks healthy. /healthz is served at the Go service's root
+    # because FB_BASE_PATH is empty.
+    ProxyPass        @@BASE_PATH@@/healthz http://127.0.0.1:@@PORT@@/healthz
+    ProxyPassReverse @@BASE_PATH@@/healthz http://127.0.0.1:@@PORT@@/healthz
+
+    # ---- The SPA ----
+    # The app lives under @@BASE_PATH@@, and this vhost sets no DocumentRoot, so
+    # the bare hostname falls through to the global one (/var/www/html) and
+    # serves Apache's "It works" default page. Send it to the app instead.
+    #
+    # Anchored to exactly "/" on purpose: it must not shadow
+    # /.well-known/acme-challenge, or certificate renewal starts failing 60 days
+    # from now, quietly.
+    RedirectMatch permanent ^/$ @@BASE_PATH@@/
+
+    Alias @@BASE_PATH@@ @@APP_DIR@@/web
+    <Directory "@@APP_DIR@@/web">
+        Require all granted
+        Options -Indexes
+        AllowOverride None
+
+        # History fallback for client-side routes.
+        RewriteEngine On
+        RewriteBase @@BASE_PATH@@/
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule . @@BASE_PATH@@/index.html [L]
+    </Directory>
+
+    ErrorLog  ${APACHE_LOG_DIR}/@@SERVICE@@_error.log
+    CustomLog ${APACHE_LOG_DIR}/@@SERVICE@@_access.log combined
+</VirtualHost>

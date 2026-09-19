@@ -14,8 +14,14 @@ import (
 // authHandler wires the OIDC login flow. When svc is nil (OIDC not configured)
 // the routes return 503 so the rest of the demo still works.
 type authHandler struct {
-	svc       *auth.Service
-	appOrigin string
+	svc *auth.Service
+	// appBase is where the browser is sent after login: the SPA's public base,
+	// origin AND path. Not appOrigin — behind a prefix-stripping proxy the SPA
+	// lives at /facility-booking/ while the API sees bare /api/..., so the
+	// origin alone lands outside the SPA entirely (on this host, Apache's
+	// default page). appOrigin remains right for CORS, where a path would be
+	// wrong, which is exactly why these are two different values.
+	appBase string
 }
 
 func (h authHandler) routes(r chi.Router) {
@@ -65,11 +71,23 @@ func (h authHandler) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.svc.SetSessionCookie(w, sessionID)
+	http.Redirect(w, r, h.landingURL(st.ReturnTo), http.StatusFound)
+}
+
+// landingURL is where the browser goes once login completes: the SPA's public
+// base, plus the already-sanitized path the login started from.
+//
+// returnTo is base-RELATIVE, because the SPA's router runs under a basename and
+// reports paths without it ("/my-bookings", not "/facility-booking/my-bookings").
+// So the base must supply that prefix; joining to the bare origin instead sends
+// the citizen outside the SPA — to Apache's default page for "/", or a 404 for
+// anything deeper.
+func (h authHandler) landingURL(returnTo string) string {
 	to := "/"
-	if st.ReturnTo != "" {
-		to = st.ReturnTo
+	if returnTo != "" {
+		to = returnTo
 	}
-	http.Redirect(w, r, h.appOrigin+to, http.StatusFound)
+	return h.appBase + to
 }
 
 // me returns the current user, or 200 with null when anonymous (so the SPA can

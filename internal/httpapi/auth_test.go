@@ -24,6 +24,7 @@ func logoutTestHandler(t *testing.T) (authHandler, *gorm.DB) {
 	db := testdb.New(t)
 	cfg := config.Config{
 		AppOrigin:                 "http://localhost:5180",
+		PublicAppURL:              "http://localhost:5180",
 		OIDCIssuer:                "http://localhost:5173/oidc",
 		OIDCBaseURL:               "http://localhost:5173/oidc",
 		OIDCClientID:              "client-1",
@@ -34,7 +35,7 @@ func logoutTestHandler(t *testing.T) (authHandler, *gorm.DB) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return authHandler{svc: svc, appOrigin: cfg.AppOrigin}, db
+	return authHandler{svc: svc, appBase: cfg.PublicAppURL}, db
 }
 
 // Logout must end the local session AND hand back C2's RP-initiated logout URL:
@@ -94,7 +95,7 @@ func TestLogoutReturnsC2LogoutURL(t *testing.T) {
 // With OIDC unconfigured the service is nil: logout still succeeds locally and
 // simply offers no upstream logout URL.
 func TestLogoutWithoutOIDC(t *testing.T) {
-	h := authHandler{appOrigin: "http://localhost:5180"}
+	h := authHandler{appBase: "http://localhost:5180"}
 	rr := httptest.NewRecorder()
 	h.logout(rr, httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil))
 
@@ -103,5 +104,46 @@ func TestLogoutWithoutOIDC(t *testing.T) {
 	}
 	if strings.Contains(rr.Body.String(), "logoutUrl") {
 		t.Errorf("body = %s, want no logoutUrl", rr.Body.String())
+	}
+}
+
+// Behind a prefix-stripping proxy the SPA lives under a base path while the API
+// sees bare /api/... paths. Post-login the browser must land inside the SPA, so
+// the redirect is built from the SPA's public base, never the bare origin.
+//
+// Getting this wrong is not a 404 you would notice in dev, where base and origin
+// are the same string: on the QA host the citizen lands on Apache's default page
+// and it looks as though login silently failed.
+func TestLandingURLUsesTheSPABaseNotTheOrigin(t *testing.T) {
+	h := authHandler{appBase: "https://facility-booking.dev-pro.app/facility-booking"}
+
+	for _, tc := range []struct{ name, returnTo, want string }{
+		{
+			name:     "default lands on the SPA root, not the server root",
+			returnTo: "",
+			want:     "https://facility-booking.dev-pro.app/facility-booking/",
+		},
+		{
+			name: "a base-relative return path keeps the prefix",
+			// What the SPA sends: react-router reports paths without the
+			// basename, so this is "/my-bookings", not the full public path.
+			returnTo: "/my-bookings",
+			want:     "https://facility-booking.dev-pro.app/facility-booking/my-bookings",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := h.landingURL(tc.returnTo); got != tc.want {
+				t.Errorf("landingURL(%q) = %q, want %q", tc.returnTo, got, tc.want)
+			}
+		})
+	}
+}
+
+// With no base path (local dev) FB_PUBLIC_APP_URL defaults to the origin, and
+// the behaviour must be exactly what it always was.
+func TestLandingURLWithoutABasePath(t *testing.T) {
+	h := authHandler{appBase: "http://localhost:5180"}
+	if got, want := h.landingURL(""), "http://localhost:5180/"; got != want {
+		t.Errorf("landingURL(%q) = %q, want %q", "", got, want)
 	}
 }

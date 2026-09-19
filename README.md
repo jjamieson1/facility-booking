@@ -88,13 +88,13 @@ curl localhost:8080/api/facilities
 cmd/server/         API entrypoint (config → DB → seed → HTTP)
 internal/
   config/           env-driven configuration
-  db/               GORM open + AutoMigrate (MariaDB)
+  db/               GORM open + AutoMigrate (MySQL/MariaDB)
   domain/           GORM models (embed Base; AllModels())
   seed/             Rivermont demo data (idempotent)
   httpapi/          chi router, JSON helpers, handlers
 web/                React 18 + TS + Vite + Tailwind SPA
 scripts/            db-setup.sql, dev.sh
-deployment/         deploy.sh (systemd + Apache; run when going live)
+deploy/             provision.sh + deploy.sh (muni-demo QA: systemd, Apache, TLS)
 ```
 
 ## Roadmap

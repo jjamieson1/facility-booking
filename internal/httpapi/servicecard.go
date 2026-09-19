@@ -50,8 +50,12 @@ func (h serviceCardHandler) status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !found {
-		// Unknown citizen → empty-but-valid 200 (spec §4), never a guess.
-		writeJSON(w, http.StatusOK, struct{}{})
+		// Unknown citizen: nobody here maps to that subject, so we have no
+		// personalized data and must not invent any (spec §4). Serve the
+		// service's own introduction instead of {} — an empty payload renders
+		// as a blank card, and until a citizen's first login that is every
+		// citizen. See servicecard.Introduction.
+		writeJSON(w, http.StatusOK, h.svc.Introduction())
 		return
 	}
 	writeJSON(w, http.StatusOK, payload)

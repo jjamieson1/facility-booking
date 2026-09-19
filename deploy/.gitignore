@@ -1,0 +1,3 @@
+# Build output: the cross-compiled API binary deploy.sh produces before
+# uploading it. Large, platform-specific, and reproducible from source.
+build/

@@ -301,9 +301,14 @@ which frees the slot and opens the waitlist. Without it one unpaid request holds
 until its own start time — a free denial-of-service on the calendar. It never touches a paid booking
 or one already under way.
 
-### Database: MariaDB only
+### Database: MySQL-protocol only (MariaDB in dev, MySQL 8 in QA)
 
-**MariaDB is the only supported database, in dev, test and production. There is no fallback.**
+**A MySQL-protocol server is the only supported database, in dev, test and production. There is no
+fallback.** Dev and the test suite run MariaDB; the muni-demo QA server runs **MySQL 8.0**, shared
+with C2 and parking. Both are fine, and the choice is not arbitrary: everything the booking path
+depends on — InnoDB, REPEATABLE READ, `SELECT … FOR UPDATE` taking real row locks, enforced foreign
+keys — behaves identically across the two. What is *not* supported is anything lacking those, which
+is exactly why the SQLite fallback had to go (below).
 `FB_DB_DSN` has no default: `db.Open` refuses to start without it, and `scripts/dev.sh` refuses to
 launch the API. That is deliberate — a fallback lets a missing or malformed DSN produce an app that
 boots healthy while writing bookings somewhere nobody backs up. `scripts/db-setup.sql` creates the
@@ -397,7 +402,7 @@ if a bind fails, use `FB_ADDR=:8091` and `VITE_API_TARGET` rather than killing t
   drops in later without a schema change (`Payment.Provider`/`ProviderRef` already reserve room).
 - **Calendar**: one-way `.ics` invite to the booker + a read-only iCal feed for the city. No
   Google/MS OAuth in v1.
-- **Deploy**: local-first; `deployment/deploy.sh` is written but not run until you go live.
+- **Deploy**: live on the muni-demo QA server via `deploy/` (see Deployment).
 
 ## Product in one line
 
@@ -450,29 +455,38 @@ there — that is intentional.
 
 ## Deployment (from deploy.md + skills/Security.md §7)
 
-- Production host: `root@hosting`. App URL: `https://facility-booking.celestialtech.ca/`.
-- Apache serves the SPA and reverse-proxies `/facility-booking/api` to the Go service
-  (stripping the `/facility-booking` prefix). Apache vhost configs live in
-  `/etc/httpd/conf.d`; HTTPS via Let's Encrypt (certbot auto-renew).
-- SPA static files go to `/var/www/facility-booking`; the API binary to `/app/facility-booking`.
-- The API runs as a **systemd** unit behind Apache. `deployment/deploy.sh` (to be written)
-  should cross-compile the Go API for linux, build the Vite SPA with base `/facility-booking/`,
-  and rsync/scp both to the host.
+- QA host: **`ssh muni-demo`** (an ssh alias, connects as root). App URL:
+  `https://facility-booking.dev-pro.app/facility-booking/`. Everything lives in **`deploy/`**:
+  `provision.sh` (one-time server setup) and `deploy.sh` (every push). The older
+  `deployment/` directory targeted a retired host and is gone.
+- Ubuntu 24.04 + **apache2**, so vhosts are in `/etc/apache2/sites-available` — *not*
+  `/etc/httpd/conf.d`, which does not exist there. Apache terminates TLS and proxies
+  `/facility-booking/api/` → `127.0.0.1:8094/api/`, **stripping** the prefix, which is why
+  `FB_BASE_PATH` is empty. HTTPS via Let's Encrypt (certbot timer, `/var/www/html` webroot).
+- The SPA lives at `/app/facility-booking/web` and the binary + env at `/app/facility-booking/`,
+  following the sibling parking app rather than a `/var/www` split. The service runs as the
+  non-root `facility` user, bound to loopback, `ProtectSystem=strict` with `data/` the only
+  writable path (it holds citizen-uploaded waivers).
 
-**There is no CI — `deployment/deploy.sh` is the gate.** It refuses to deploy unless HEAD is exactly
-`origin/main` with a clean tree (it builds from the working tree, so a dirty checkout ships code no
-commit describes), `go build`/`go vet`/the full MariaDB suite pass, and the server's env file names a
-MariaDB `FB_DB_DSN` with no SQLite-era leftovers. `--allow-any-ref` and `--skip-tests` override the
-first two for emergencies and announce themselves loudly. Adding a route, a model or a migration
-therefore means the suite must pass before anything reaches the public site.
+**There is no CI — `deploy/deploy.sh` is the gate.** `go build`, `go vet` and the full suite must
+pass before anything ships, and the script checks the server's env file names a `FB_DB_DSN` with no
+SQLite-era leftovers. Unlike the old production script it does **not** refuse a non-main or dirty
+tree: QA exists for trying a branch. It warns loudly and names the commit the binary does not match,
+because a binary traceable to no commit is a thing the next person deserves to be told about.
+`--skip-tests` remains for emergencies and announces itself.
 
-**This is a shared host running other services — deploy additively.** Before changing anything,
-do read-only recon (`httpd -S` for existing vhosts and the current default; `ss -ltnp` for a
-free port; confirm DNS and existing certs). Name new vhost files to load **last**
-(`zzz-<domain>.conf`) so you don't silently become the default vhost. `configtest` before every
-reload with backup/rollback. Issue certs with `certbot certonly --webroot` (not `--apache`).
-Run the service as a non-root user bound to loopback, reverse-proxied. Never invent or paste
-production DB passwords; have the operator set them. Full checklist in `skills/Security.md` §7.
+**This is a shared host running other services** — C2 (`:8092`), parking (`:8093`) and the audit
+service (`:8090`), all on loopback behind Apache. Deploy additively. `provision.sh` does its own
+read-only recon first and refuses to take a port another service holds; Apache is only ever reloaded
+after `configtest`, with the previous config restored on failure, because a syntax error takes those
+other services down too. Certificates are issued with `certbot certonly --webroot` (never
+`--apache`, which rewrites vhosts). Generated secrets are written once and never regenerated:
+re-running provision preserves the env file, since rotating the session secret logs every citizen
+out and rotating the database password locks the running service out of its own data. Never invent
+or paste production DB passwords. Full checklist in `skills/Security.md` §7.
+
+> The C2 the QA server integrates with runs on that same box under `/c2`. Registration ids and the
+> two steps the `dev-app-builder` MCP cannot perform are recorded in `deploy/README.md`.
 
 ## Key correctness requirements
 
@@ -553,8 +567,9 @@ git push -u origin feat/FAC-NN-short-slug
 gh pr create                                # link the ticket; say what changed and why
 ```
 
-`deployment/deploy.sh` refuses to deploy unless HEAD is exactly `origin/main` **and the tree is
-clean**, so unmerged work cannot reach production — the PR is the path, not a formality.
+`deploy/deploy.sh` will ship any branch to QA — that is what QA is for — so the PR is the path for
+*merging*, not a gate on trying something. It still refuses to ship past a failing suite. A
+production deploy would restore the `origin/main` + clean-tree requirement.
 
 PR bodies should carry what a reviewer cannot get from the diff: the failure the change prevents,
 anything deliberately left out, and which claims were tested versus reasoned about. Ticket comments

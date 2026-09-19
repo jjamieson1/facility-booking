@@ -80,7 +80,7 @@ func New(d Deps) http.Handler {
 	psh := paymentSettingsHandler{svc: d.PaymentSettings, payments: d.Payment}
 	pol := policyHandler{policies: d.Policy, bookings: d.Booking}
 	langh := languageHandler{db: d.DB}
-	ah := authHandler{svc: d.Auth, appOrigin: d.Cfg.AppOrigin}
+	ah := authHandler{svc: d.Auth, appBase: d.Cfg.PublicAppURL}
 
 	r.Route(d.Cfg.BasePath+"/api", func(api chi.Router) {
 		api.Route("/auth", ah.routes)

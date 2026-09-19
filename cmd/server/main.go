@@ -6,6 +6,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
@@ -32,6 +33,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/users"
 	"github.com/jjamieson1/facility-booking/internal/waitlist"
 	"github.com/jjamieson1/facility-booking/internal/waiver"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -144,11 +146,31 @@ func main() {
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	log.Printf("facility-booking API listening on %s (env=%s db=mariadb oidc=%v audit=%v notify=%s)",
-		cfg.Addr, cfg.Env, cfg.OIDCEnabled(), cfg.AuditURL != "", notifyMode(partner.Configured()))
+	log.Printf("facility-booking API listening on %s (env=%s db=%s oidc=%v audit=%v notify=%s)",
+		cfg.Addr, cfg.Env, dbVersion(gdb), cfg.OIDCEnabled(), cfg.AuditURL != "", notifyMode(partner.Configured()))
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("server: %v", err)
 	}
+}
+
+// dbVersion reports the server actually connected to, for the startup line.
+// It used to print a hardcoded "mariadb", which stopped being true the moment
+// this ran against the QA server's MySQL 8 — and a startup line that states the
+// wrong database is worse than one that states none, because it is the first
+// thing read when the booking path misbehaves.
+func dbVersion(gdb *gorm.DB) string {
+	var v string
+	if err := gdb.Raw("SELECT VERSION()").Scan(&v).Error; err != nil || v == "" {
+		return "unknown"
+	}
+	// "11.5.2-MariaDB" / "8.0.46-0ubuntu0.24.04.4" -> the leading version.
+	if i := strings.IndexAny(v, " -"); i > 0 && strings.Contains(strings.ToLower(v), "mariadb") {
+		return "mariadb " + v[:i]
+	}
+	if i := strings.IndexAny(v, " -"); i > 0 {
+		return "mysql " + v[:i]
+	}
+	return v
 }
 
 // notifyMode names where notifications go, for the startup line.
