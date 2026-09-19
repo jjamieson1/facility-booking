@@ -4,6 +4,8 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
+import { brand } from "./brand";
+
 const en = {
   nav: { facilities: "Facilities", availability: "Availability", map: "Map", myBookings: "My bookings", approvals: "Approvals", manage: "Manage", reports: "Reports", payments: "Payments", users: "Users", calendarSettings: "Calendar", paymentSettings: "Gateway", audit: "Audit", admin: "Admin" },
   a11y: { skipToContent: "Skip to main content", mainNav: "Main navigation", language: "Language", joinWaitlist: "Join the waitlist for {{time}}", uploadWaiver: "Upload waiver document", loading: "Loading" },
@@ -15,7 +17,7 @@ const en = {
   },
   list: {
     title: "Bookable spaces",
-    subtitle: "Browse Rivermont's facilities, or find one free at a specific time.",
+    subtitle: "Browse {{city}}'s facilities, or find one free at a specific time.",
     minCapacity: "Min. capacity", any: "Any",
     freeOnly: "Free only",
     freeAtTime: "Free at a time:",
@@ -38,7 +40,7 @@ const en = {
   facility: {
     all: "← All facilities",
     book: "Book this space",
-    signInHint: "Sign in with your Rivermont account to request a booking.",
+    signInHint: "Sign in with your {{city}} account to request a booking.",
     requestBooking: "Request booking",
     requesting: "Requesting…",
     bookWeekly: "Book {{count}} weekly sessions",
@@ -115,7 +117,7 @@ const en = {
     waitlist: "Waitlist", waitlistHint: "You'll be notified if one of these slots frees up.",
     residency: "Residency", verifiedResident: "Verified resident",
     verifyTitle: "Verify your residency",
-    verifyHint: "Confirm your Rivermont address to get resident pricing on paid facilities.",
+    verifyHint: "Confirm your {{city}} address to get resident pricing on paid facilities.",
     residencyDenied: "That address isn't on the municipal roll, so non-resident rates apply. Check the address, or contact the city if you think this is wrong.",
     residencyUnavailable: "Residency can't be checked right now, so non-resident rates apply for the moment. This isn't a decision about your residency.",
     residencyStale: "Not re-confirmed",
@@ -123,7 +125,7 @@ const en = {
     willRefund: "You'll get {{amount}} back.",
     refundIssued: "Cancelled — {{amount}} refunded.",
     noRefund: "Cancelled. No refund was due.",
-    address: "Municipal address", addressPlaceholder: "123 Riverside Ave, Rivermont",
+    address: "Municipal address", addressPlaceholder: "123 Riverside Ave, {{city}}",
     verify: "Verify residency", verifying: "Verifying…",
   },
   staffQueue: {
@@ -272,7 +274,7 @@ const fr = {
   },
   list: {
     title: "Espaces réservables",
-    subtitle: "Parcourez les installations de Rivermont ou trouvez-en une libre à une heure précise.",
+    subtitle: "Parcourez les installations de {{city}} ou trouvez-en une libre à une heure précise.",
     minCapacity: "Capacité min.", any: "Toutes",
     freeOnly: "Gratuit seulement",
     freeAtTime: "Libre à une heure :",
@@ -295,7 +297,7 @@ const fr = {
   facility: {
     all: "← Toutes les installations",
     book: "Réserver cet espace",
-    signInHint: "Connectez-vous avec votre compte Rivermont pour faire une demande.",
+    signInHint: "Connectez-vous avec votre compte {{city}} pour faire une demande.",
     requestBooking: "Demander une réservation",
     requesting: "Envoi…",
     bookWeekly: "Réserver {{count}} séances hebdomadaires",
@@ -372,7 +374,7 @@ const fr = {
     waitlist: "Liste d'attente", waitlistHint: "Vous serez avisé si l'un de ces créneaux se libère.",
     residency: "Résidence", verifiedResident: "Résident vérifié",
     verifyTitle: "Vérifiez votre résidence",
-    verifyHint: "Confirmez votre adresse à Rivermont pour obtenir le tarif résident sur les installations payantes.",
+    verifyHint: "Confirmez votre adresse à {{city}} pour obtenir le tarif résident sur les installations payantes.",
     residencyDenied: "Cette adresse ne figure pas au rôle municipal; le tarif non-résident s'applique. Vérifiez l'adresse ou communiquez avec la Ville si vous croyez qu'il y a une erreur.",
     residencyUnavailable: "La résidence ne peut pas être vérifiée pour l'instant; le tarif non-résident s'applique temporairement. Il ne s'agit pas d'une décision sur votre résidence.",
     residencyStale: "Non reconfirmé",
@@ -380,7 +382,7 @@ const fr = {
     willRefund: "Vous serez remboursé de {{amount}}.",
     refundIssued: "Annulée — {{amount}} remboursé.",
     noRefund: "Annulée. Aucun remboursement n'était dû.",
-    address: "Adresse municipale", addressPlaceholder: "123 av. Riverside, Rivermont",
+    address: "Adresse municipale", addressPlaceholder: "123 av. Riverside, {{city}}",
     verify: "Vérifier la résidence", verifying: "Vérification…",
   },
   staffQueue: {
@@ -523,7 +525,14 @@ void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, fr: { translation: fr } },
   lng: stored ?? "en",
   fallbackLng: "en",
-  interpolation: { escapeValue: false },
+  interpolation: {
+    escapeValue: false,
+    // Every string that names the municipality uses {{city}} and gets it from
+    // here, so no call site passes it and no bundle hardcodes it. Rebranding
+    // stays a change to brand.ts, which is FAC-20's whole point — and a Go
+    // guard test fails the build if the name reappears in these bundles.
+    defaultVariables: { city: brand.short },
+  },
 });
 
 // Keep the document language in sync so screen readers announce content in the
