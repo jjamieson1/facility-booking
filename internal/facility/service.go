@@ -323,8 +323,7 @@ type CalendarSlot struct {
 
 // CalendarDay is one column of the calendar grid.
 type CalendarDay struct {
-	Date    string         `json:"date"`  // YYYY-MM-DD
-	Label   string         `json:"label"` // e.g. "Mon 21"
+	Date    string         `json:"date"` // YYYY-MM-DD
 	IsToday bool           `json:"isToday"`
 	Slots   []CalendarSlot `json:"slots"`
 }
@@ -393,7 +392,13 @@ func (s *Service) Calendar(ctx context.Context, id string, from time.Time, days 
 	for i := 0; i < days; i++ {
 		day := from.AddDate(0, 0, i)
 		rule, open := byWeekday[int(day.Weekday())]
-		cd := CalendarDay{Date: day.Format("2006-01-02"), Label: day.Format("Mon 2"), IsToday: day.Format("2006-01-02") == today}
+		// No Label here on purpose. It used to carry day.Format("Mon 2"),
+		// which Go can only render in English — so a French calendar showed
+		// English weekdays, and the month view parsed that string with
+		// split(" ") to build its headings. The SPA derives both from Date
+		// with Intl instead. Re-adding a server-formatted label would
+		// reintroduce an English-only field the UI is tempted to print.
+		cd := CalendarDay{Date: day.Format("2006-01-02"), IsToday: day.Format("2006-01-02") == today}
 		for m := openMin; m+calendarSlotMinutes <= closeMin; m += calendarSlotMinutes {
 			slotStart := day.Add(time.Duration(m) * time.Minute)
 			slotEnd := slotStart.Add(calendarSlotMinutes * time.Minute)

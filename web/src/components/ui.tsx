@@ -1,7 +1,10 @@
 // A small shadcn-style UI kit for the demo.
 import { useState } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import i18n from "i18next";
 import { useTranslation } from "react-i18next";
+
+import { appLocale } from "../lib/i18n";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>{children}</div>;
@@ -50,18 +53,26 @@ export function Spinner({ label = "Loading…" }: { label?: string }) {
   return <p role="status" className="text-sm text-slate-500">{label}</p>;
 }
 
+// "Free" was hardcoded English while common.free already existed in both
+// bundles, and the "$" prefix put the sign on the wrong side of a French
+// amount. Intl places it correctly per locale: "$90.00" / "90,00 $".
 export function formatFee(cents: number): string {
-  return cents === 0 ? "Free" : `$${(cents / 100).toFixed(2)}`;
+  if (cents === 0) return i18n.t("common.free");
+  return new Intl.NumberFormat(appLocale(), {
+    // narrowSymbol, or en-US disambiguates a foreign currency as "CA$120.00".
+    // fr-CA is unaffected — it renders "120,00 $" either way.
+    style: "currency", currency: "CAD", currencyDisplay: "narrowSymbol",
+  }).format(cents / 100);
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString(appLocale(), {
     weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
   });
 }
 
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(appLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 const statusTone: Record<string, "green" | "amber" | "red" | "slate"> = {
