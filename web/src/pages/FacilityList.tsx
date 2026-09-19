@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api, type Facility, type FacilityFilter } from "../lib/api";
+import { todayISO } from "../lib/day";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, FacilityImage, Input, Spinner, formatFee } from "../components/ui";
 
@@ -85,7 +86,7 @@ export function FacilityList() {
 
           <label className="text-sm">
             <span className="mb-1 block text-slate-500">{t("list.date")}</span>
-            <Input type="date" min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
+            <Input type="date" min={todayISO()} value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
           </label>
           <label className="text-sm">
             <span className="mb-1 block text-slate-500">{t("list.from")}</span>

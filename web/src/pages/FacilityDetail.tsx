@@ -3,12 +3,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api, type Booking, type RecurringResult } from "../lib/api";
+import { todayISO } from "../lib/day";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, FacilityImage, Input, Spinner, formatFee, formatTime } from "../components/ui";
 
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+
 
 export function FacilityDetail() {
   const { t } = useTranslation();
@@ -103,7 +102,7 @@ function BookingWidget({ facilityId, requiresWaiver }: { facilityId: string; min
   // preselects that slot.
   const presetStart = searchParams.get("start");
   const presetDuration = Number(searchParams.get("duration"));
-  const [date, setDate] = useState(presetStart ? presetStart.slice(0, 10) : today());
+  const [date, setDate] = useState(presetStart ? presetStart.slice(0, 10) : todayISO());
   const [startISO, setStartISO] = useState(presetStart ?? "");
   const [durationMin, setDurationMin] = useState([60, 120, 180, 240].includes(presetDuration) ? presetDuration : 60);
   const [purpose, setPurpose] = useState("");
@@ -183,7 +182,7 @@ function BookingWidget({ facilityId, requiresWaiver }: { facilityId: string; min
 
       <label className="block text-sm">
         <span className="mb-1 block text-slate-500">{t("facility.date")}</span>
-        <Input type="date" min={today()} value={date} onChange={(e) => { setDate(e.target.value); setStartISO(""); }} />
+        <Input type="date" min={todayISO()} value={date} onChange={(e) => { setDate(e.target.value); setStartISO(""); }} />
       </label>
 
       <div>

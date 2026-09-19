@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { api, type Booking } from "../lib/api";
+import { todayISO } from "../lib/day";
 import { Badge, Button, Card, Input, Spinner, StatusBadge, formatDateTime, formatFee, formatTime } from "../components/ui";
 
 export function BookingDetail() {
@@ -169,7 +170,7 @@ function RescheduleCard({ booking, onDone }: { booking: Booking; onDone: () => v
       <h3 className="font-semibold">{t("booking.changeTime")}</h3>
       <label className="block text-sm">
         <span className="mb-1 block text-slate-500">{t("facility.date")}</span>
-        <Input type="date" min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => { setDate(e.target.value); setStartISO(""); }} />
+        <Input type="date" min={todayISO()} value={date} onChange={(e) => { setDate(e.target.value); setStartISO(""); }} />
       </label>
       <div>
         <span className="mb-1 block text-sm text-slate-500">{t("booking.keepsDuration", { hours: Math.round(durationMs / 3.6e6 * 10) / 10 })}</span>
