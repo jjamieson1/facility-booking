@@ -166,3 +166,55 @@ func TestBlackoutBlocksBooking(t *testing.T) {
 		t.Errorf("reversed range err = %v, want ErrBadRange", err)
 	}
 }
+
+// A facility whose minimum booking is longer than an hour must still offer
+// slots. buildSlots used to probe a fixed 60 minutes, which every such facility
+// rejected as TooShort — so a hall with no bookings and no blackouts reported
+// every slot of every day as taken, and the UI could only offer a waitlist.
+func TestDayAvailabilityHonoursAMinimumLongerThanAnHour(t *testing.T) {
+	db := testdb.New(t)
+	svc := NewService(db)
+
+	hall := domain.Facility{
+		Name: "Two Hour Hall", Capacity: 100,
+		MinMinutes: 120, MaxMinutes: 600, BufferMinutes: 30,
+	}
+	if err := db.Create(&hall).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Open 08:00–22:00 every day.
+	for wd := 0; wd < 7; wd++ {
+		if err := db.Create(&domain.AvailabilityRule{
+			FacilityID: hall.ID, Weekday: wd, OpenMinute: 480, CloseMinute: 1320,
+		}).Error; err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	day := time.Date(2030, 6, 3, 0, 0, 0, 0, time.UTC) // a clear future Monday
+	slots, err := svc.DayAvailability(context.Background(), hall.ID, day)
+	if err != nil {
+		t.Fatalf("DayAvailability: %v", err)
+	}
+
+	var free int
+	for _, s := range slots {
+		if s.Available {
+			free++
+		}
+	}
+	if free == 0 {
+		t.Fatalf("every one of %d slots reported taken on an empty day; a 120-minute minimum must not hide the facility", len(slots))
+	}
+	// Each offered slot must itself be a legal booking, or clicking it fails.
+	for _, s := range slots {
+		if got := int(s.End.Sub(s.Start).Minutes()); got < hall.MinMinutes {
+			t.Fatalf("slot %s is %d minutes, shorter than the facility's %d-minute minimum", s.Start, got, hall.MinMinutes)
+		}
+	}
+	// The last slot must fit before closing (22:00).
+	last := slots[len(slots)-1]
+	if closeAt := day.Add(1320 * time.Minute); last.End.After(closeAt) {
+		t.Errorf("last slot ends %s, after closing %s", last.End, closeAt)
+	}
+}
