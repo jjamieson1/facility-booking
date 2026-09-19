@@ -214,15 +214,25 @@ function BookingWidget({ facilityId, requiresWaiver }: { facilityId: string; min
           <span className="mb-1 block text-sm text-slate-500">{t("facility.takenWaitlist")}</span>
           <div className="flex flex-wrap gap-2">
             {taken.map((s) => (
+              // A dashed border and slate-500 text are how this app draws
+              // things that are OFF, so these read as disabled and the action
+              // went unnoticed in a demo rehearsal — the chip IS the button,
+              // and the only "join waitlist" wording lived in an aria-label.
+              // Solid border, readable text and a visible verb, styled a step
+              // below the available times so the primary action still leads.
               <button
                 key={s.start}
                 type="button"
                 disabled={waitlist.isPending}
                 onClick={() => { setError(""); setNotice(""); waitlist.mutate({ start: s.start, end: s.end }); }}
-                className="rounded-lg border border-dashed border-slate-300 px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-left text-sm text-slate-700 hover:border-brand-500 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-60"
+                title={t("facility.waitlistTooltip")}
                 aria-label={t("a11y.joinWaitlist", { time: formatTime(s.start) })}
               >
-                {formatTime(s.start)} <span aria-hidden="true">⏳</span>
+                <span className="block font-medium">
+                  {formatTime(s.start)} <span aria-hidden="true">⏳</span>
+                </span>
+                <span className="block text-xs text-slate-500">{t("facility.waitlistAction")}</span>
               </button>
             ))}
           </div>
