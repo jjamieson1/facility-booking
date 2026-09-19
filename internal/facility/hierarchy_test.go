@@ -121,7 +121,7 @@ func TestDayAvailabilityReflectsParentBooking(t *testing.T) {
 	hall := makeFacility(t, db, "Hall", 200)
 	north := makeChild(t, db, hall, "North")
 
-	day := time.Date(2026, 7, 22, 0, 0, 0, 0, time.Local)
+	day := futureWednesday(0, 0)
 	start := day.Add(10 * time.Hour)
 	u := domain.User{Subject: "s", Email: "e@x", Role: domain.RoleResident}
 	db.Create(&u)

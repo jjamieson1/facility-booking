@@ -245,7 +245,7 @@ func TestParameterFiltersCombineWithWindow(t *testing.T) {
 	equip(t, db, booked, "Projector")
 	equip(t, db, free, "Projector")
 
-	from := time.Date(2026, 7, 22, 14, 0, 0, 0, time.Local)
+	from := futureWednesday(14, 0)
 	to := from.Add(3 * time.Hour)
 	if err := db.Create(&domain.Booking{FacilityID: booked.ID, UserID: makeBooker(t, db).ID,
 		Status: domain.StatusConfirmed, StartsAt: from, EndsAt: to}).Error; err != nil {

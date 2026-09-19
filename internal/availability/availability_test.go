@@ -26,9 +26,16 @@ func dailyHours() []domain.AvailabilityRule {
 }
 
 func at(hour, min int) time.Time {
-	// A fixed Wednesday so weekday lookup is stable. Local time, because opening
-	// hours are local wall-clock minutes (Check compares in local time).
-	return time.Date(2026, 7, 22, hour, min, 0, 0, time.Local)
+	// A Wednesday so weekday lookup is stable, and always in the FUTURE, because
+	// Check now rejects a window that has passed. The previous fixture was the
+	// hardcoded date 2026-07-22 — future when it was written, silently the past
+	// by the time the guard landed. A fixture that expires is a test that starts
+	// failing for a reason unrelated to the code under test.
+	d := time.Now().Local().AddDate(0, 0, 14)
+	for d.Weekday() != time.Wednesday {
+		d = d.AddDate(0, 0, 1)
+	}
+	return time.Date(d.Year(), d.Month(), d.Day(), hour, min, 0, 0, time.Local)
 }
 
 func TestCheck(t *testing.T) {
@@ -97,8 +104,8 @@ func TestCheckAcceptsUTCInstantForLocalOpeningHours(t *testing.T) {
 	defer func() { time.Local = orig }()
 
 	// 7:00–8:00 PM local on the fixed Wednesday, sent as UTC instants.
-	start := time.Date(2026, 7, 22, 19, 0, 0, 0, time.Local).UTC()
-	end := time.Date(2026, 7, 22, 20, 0, 0, 0, time.Local).UTC()
+	start := at(19, 0).UTC()
+	end := at(20, 0).UTC()
 
 	got := Check(Input{Facility: testFacility(), Rules: dailyHours(), Start: start, End: end})
 	if got != OK {
@@ -110,5 +117,54 @@ func TestBlackoutBlocks(t *testing.T) {
 	bo := domain.Blackout{StartsAt: at(9, 0), EndsAt: at(17, 0)}
 	if got := Check(Input{Facility: testFacility(), Rules: dailyHours(), Blackouts: []domain.Blackout{bo}, Start: at(10, 0), End: at(11, 0)}); got != Blackout {
 		t.Errorf("blackout should block: got %q", got)
+	}
+}
+
+// A window that has already passed is not bookable. Check is the only validator
+// the booking path runs, so without this a past booking is not merely displayed
+// but accepted and auto-confirmed — chargeable, and counted in the reports.
+func TestCheckRejectsAWindowInThePast(t *testing.T) {
+	now := at(12, 0)
+
+	cases := []struct {
+		name  string
+		start time.Time
+		end   time.Time
+		want  Reason
+	}{
+		{"wholly in the past", at(9, 0), at(10, 0), InPast},
+		{"started before now, ends after", at(11, 0), at(13, 0), InPast},
+		{"starts exactly now", now, at(13, 0), OK},
+		{"starts after now", at(13, 0), at(14, 0), OK},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Check(Input{
+				Facility: testFacility(),
+				Rules:    dailyHours(),
+				Start:    tc.start, End: tc.end,
+				Now: now,
+			})
+			if got != tc.want {
+				t.Errorf("Check = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// The clock is injectable so results never depend on when the suite runs, but a
+// zero Now must mean "use the real clock", never "skip the check" — a zero value
+// that disabled the guard would silently switch it off for every caller that had
+// not been updated.
+func TestCheckWithNoClockStillRejectsThePast(t *testing.T) {
+	longAgo := time.Now().Local().AddDate(0, 0, -30)
+	got := Check(Input{
+		Facility: testFacility(),
+		Rules:    dailyHours(),
+		Start:    longAgo, End: longAgo.Add(time.Hour),
+		// Now deliberately left zero.
+	})
+	if got != InPast {
+		t.Errorf("Check with zero Now = %q, want %q — the guard must default ON", got, InPast)
 	}
 }

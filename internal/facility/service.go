@@ -281,7 +281,7 @@ func (s *Service) DayAvailability(ctx context.Context, id string, day time.Time)
 	if err != nil {
 		return nil, err
 	}
-	return buildSlots(*f, rules, blackouts, bookings, dayStart), nil
+	return buildSlots(*f, rules, blackouts, bookings, dayStart, time.Now()), nil
 }
 
 // loadWindow fetches a facility's rules, plus the blackouts and active bookings
@@ -422,7 +422,7 @@ func slotStatus(dayOpen bool, rule domain.AvailabilityRule, minute int, start, e
 }
 
 // buildSlots walks the day's opening hours in one-hour steps, checking each.
-func buildSlots(f domain.Facility, rules []domain.AvailabilityRule, blackouts []domain.Blackout, bookings []domain.Booking, dayStart time.Time) []Slot {
+func buildSlots(f domain.Facility, rules []domain.AvailabilityRule, blackouts []domain.Blackout, bookings []domain.Booking, dayStart time.Time, now time.Time) []Slot {
 	weekday := int(dayStart.Weekday())
 	var open, close int
 	for _, r := range rules {
@@ -453,7 +453,8 @@ func buildSlots(f domain.Facility, rules []domain.AvailabilityRule, blackouts []
 		start := dayStart.Add(time.Duration(m) * time.Minute)
 		end := start.Add(time.Duration(probe) * time.Minute)
 		reason := availability.Check(availability.Input{
-			Facility: f, Rules: rules, Blackouts: blackouts, Bookings: bookings, Start: start, End: end,
+			Facility: f, Rules: rules, Blackouts: blackouts, Bookings: bookings,
+			Start: start, End: end, Now: now,
 		})
 		slots = append(slots, Slot{Start: start, End: end, Available: reason == availability.OK})
 	}
