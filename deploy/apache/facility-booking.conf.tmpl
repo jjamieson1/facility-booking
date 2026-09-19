@@ -59,6 +59,15 @@
     ProxyPassReverse @@BASE_PATH@@/healthz http://127.0.0.1:@@PORT@@/healthz
 
     # ---- The SPA ----
+    # The app lives under @@BASE_PATH@@, and this vhost sets no DocumentRoot, so
+    # the bare hostname falls through to the global one (/var/www/html) and
+    # serves Apache's "It works" default page. Send it to the app instead.
+    #
+    # Anchored to exactly "/" on purpose: it must not shadow
+    # /.well-known/acme-challenge, or certificate renewal starts failing 60 days
+    # from now, quietly.
+    RedirectMatch permanent ^/$ @@BASE_PATH@@/
+
     Alias @@BASE_PATH@@ @@APP_DIR@@/web
     <Directory "@@APP_DIR@@/web">
         Require all granted
