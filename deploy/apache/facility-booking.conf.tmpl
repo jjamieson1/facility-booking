@@ -74,11 +74,28 @@
         Options -Indexes
         AllowOverride None
 
-        # History fallback for client-side routes.
+        # History fallback for client-side routes: anything that is not a real
+        # FILE is the app's to route.
+        #
+        # There is deliberately no !-d condition. With one, a request whose path
+        # matches a real directory skipped the rewrite and fell through to
+        # Options -Indexes, which answers 403 — and web/facilities/ is a real
+        # directory, since that is where the facility photos live. So
+        # /facility-booking/facilities/ served a raw Apache error page instead
+        # of the SPA, and any future route colliding with a directory name would
+        # do the same. A single-page app has no directory listing to protect.
+        #
+        # Static assets are unaffected: they are files, so !-f stops the
+        # rewrite and Apache serves them as itself.
+        #
+        # DirectorySlash is off so mod_dir does not first redirect a
+        # slash-less directory path to its trailing-slash form, which would
+        # bounce the browser before this rule is reached.
+        DirectorySlash Off
+
         RewriteEngine On
         RewriteBase @@BASE_PATH@@/
         RewriteCond %{REQUEST_FILENAME} !-f
-        RewriteCond %{REQUEST_FILENAME} !-d
         RewriteRule . @@BASE_PATH@@/index.html [L]
     </Directory>
 
