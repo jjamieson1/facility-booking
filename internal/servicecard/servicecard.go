@@ -177,6 +177,28 @@ func waitSentence(waiting []domain.WaitlistEntry) string {
 	}
 }
 
+// Introduction is the payload for a subject we hold no record for — a citizen
+// who has not signed in to this service yet.
+//
+// Spec §4 allows an empty-but-valid payload here, and returning a bare {} is
+// what this used to do. It is compliant and useless: C2 renders nothing, so the
+// card is blank for precisely the people the card exists to reach. Every
+// citizen is in this state until their first login, which makes a blank card
+// the normal first impression rather than an edge case.
+//
+// This is not the "guess" §4 warns against. It asserts nothing about the
+// citizen — it cannot, we know nothing about them — and carries only what is
+// true for everyone: what the service is, and the way in.
+func (s *Service) Introduction() *Payload {
+	return &Payload{
+		Title:       "Book a " + brand.Short() + " facility",
+		Description: "Halls, arenas, meeting rooms and sports fields you can reserve online. See what is free, request a space, and manage your bookings here.",
+		CTA:         s.appURL + "/",
+		Contact:     &s.contact,
+		Tasks:       []Task{s.browseTask()},
+	}
+}
+
 // browseTask is the default action, always present on the card: a link to the
 // main facilities directory page.
 func (s *Service) browseTask() Task {

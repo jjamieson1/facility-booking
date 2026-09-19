@@ -178,3 +178,31 @@ func TestStatusForSubjectUnknown(t *testing.T) {
 		t.Errorf("unknown subject: found=%v p=%v, want false/nil", found, p)
 	}
 }
+
+// A citizen who has never signed in still gets a usable card. This is the
+// common case, not an edge one: until someone's first login there is no local
+// user for their subject, so an empty payload here means every new citizen sees
+// a blank card — which is what this used to do.
+func TestIntroductionForUnknownCitizen(t *testing.T) {
+	svc, _ := newSvc(t)
+	p := svc.Introduction()
+
+	if p.Description == "" {
+		t.Error("description is empty; the card would render with nothing to read")
+	}
+	if p.CTA != appURL+"/" {
+		t.Errorf("CTA = %q, want the directory at %q — a stranger has no bookings to land on", p.CTA, appURL+"/")
+	}
+	if len(p.Tasks) != 1 {
+		t.Fatalf("tasks = %d, want 1 (Browse Facilities)", len(p.Tasks))
+	}
+	assertBrowseTask(t, p.Tasks[0])
+
+	// It must say nothing ABOUT the citizen: we know nothing about them, and
+	// spec §4 forbids guessing. Personalized wording is the tell.
+	for _, phrase := range []string{"You have", "upcoming booking", "waitlist"} {
+		if strings.Contains(p.Description, phrase) {
+			t.Errorf("description = %q, must not claim anything about an unknown citizen (%q)", p.Description, phrase)
+		}
+	}
+}
