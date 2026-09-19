@@ -430,10 +430,28 @@ func buildSlots(f domain.Facility, rules []domain.AvailabilityRule, blackouts []
 			open, close = r.OpenMinute, r.CloseMinute
 		}
 	}
+	// A slot is a possible START time, and the shortest booking the facility
+	// permits is its own minimum duration — so probe with that, not a fixed
+	// hour. Probing 60 minutes against a facility that requires 120 fails every
+	// slot on TooShort, and the entire day reports as taken with no booking and
+	// no blackout anywhere near it. On this demo that silently hid four of nine
+	// facilities, the flagship Community Hall among them.
+	probe := f.MinMinutes
+	if probe <= 0 {
+		probe = 60
+	}
+	// Start times stay on the hour where the minimum allows it, so a 2-hour
+	// facility still offers 08:00, 09:00, 10:00 … rather than only every other
+	// hour. Sub-hour minimums step at their own size.
+	step := 60
+	if probe < step {
+		step = probe
+	}
+
 	var slots []Slot
-	for m := open; m+60 <= close; m += 60 {
+	for m := open; m+probe <= close; m += step {
 		start := dayStart.Add(time.Duration(m) * time.Minute)
-		end := start.Add(time.Hour)
+		end := start.Add(time.Duration(probe) * time.Minute)
 		reason := availability.Check(availability.Input{
 			Facility: f, Rules: rules, Blackouts: blackouts, Bookings: bookings, Start: start, End: end,
 		})
