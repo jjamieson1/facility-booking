@@ -2,21 +2,13 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { addDaysISO, addMonthsISO, mondayOfISO } from "../lib/day";
 import { appLocale } from "../lib/i18n";
 import { api, type CalendarDay, type FacilityCalendar, type SlotStatus } from "../lib/api";
 import { Card, Spinner } from "../components/ui";
 
-// --- date helpers (YYYY-MM-DD string math, local) --------------------------
-function mondayStr(d = new Date()): string {
-  const x = new Date(d);
-  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // back up to Monday
-  return x.toISOString().slice(0, 10);
-}
-function addDays(iso: string, n: number): string {
-  const d = new Date(iso + "T00:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
+// Date helpers live in lib/day.ts. They used to be here and said "local" in a
+// comment while formatting with toISOString(), which is UTC — see FAC-49.
 function hourLabel(minute: number): string {
   // Built from a real Date so the locale decides the convention: "8 a.m." in
   // English, "8 h" in French. Assembling "8 AM" by hand printed an English
@@ -50,18 +42,15 @@ function monthLabel(iso: string): string {
 }
 function firstMondayOfMonth(iso: string): string {
   const d = new Date(iso + "T00:00:00");
-  return mondayStr(new Date(d.getFullYear(), d.getMonth(), 1));
+  return mondayOfISO(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`);
 }
-function addMonths(iso: string, n: number): string {
-  const d = new Date(iso + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth() + n, 1).toISOString().slice(0, 10);
-}
+
 
 export function FacilityCalendar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const [weekStart, setWeekStart] = useState(mondayStr());
+  const [weekStart, setWeekStart] = useState(mondayOfISO());
   const [view, setView] = useState<"week" | "month">("week");
 
   const { data: facilities } = useQuery({ queryKey: ["facilities", {}], queryFn: () => api.listFacilities() });
@@ -75,10 +64,10 @@ export function FacilityCalendar() {
     enabled: !!facilityId,
   });
 
-  const goPrev = () => setWeekStart((w) => (view === "week" ? addDays(w, -7) : addMonths(w, -1)));
-  const goNext = () => setWeekStart((w) => (view === "week" ? addDays(w, 7) : addMonths(w, 1)));
+  const goPrev = () => setWeekStart((w) => (view === "week" ? addDaysISO(w, -7) : addMonthsISO(w, -1)));
+  const goNext = () => setWeekStart((w) => (view === "week" ? addDaysISO(w, 7) : addMonthsISO(w, 1)));
   const openDay = (date: string) => {
-    setWeekStart(mondayStr(new Date(date + "T00:00:00")));
+    setWeekStart(mondayOfISO(date));
     setView("week");
   };
 

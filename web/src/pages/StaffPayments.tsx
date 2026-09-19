@@ -14,6 +14,11 @@ function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+// These anchor at noon UTC and use UTC getters throughout, which is the other
+// safe way to do calendar-date maths: noon UTC cannot cross a date boundary at
+// any real offset. lib/day.ts stays purely in local components instead. Either
+// is correct; what is not is mixing them — local arithmetic formatted with
+// toISOString(), which is the bug FAC-49 fixed elsewhere.
 function shiftISO(iso: string, delta: number): string {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + delta);
