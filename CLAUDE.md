@@ -382,12 +382,30 @@ if a bind fails, use `FB_ADDR=:8091` and `VITE_API_TARGET` rather than killing t
   the issuer origin is consistent and the authorize round-trip sees C2's session cookie. Client
   registered via C2's `POST /api/federation/clients` (needs WRITE_FEDERATION) — see
   `scripts/register-c2-client.sh`.
-- **C2 releases only `sub`** over OIDC (it gates name/email behind an app consent-policy chain
-  the demo app doesn't have), so `internal/auth/c2.go` fetches name + primary email from C2's
-  identity API (`GET /api/identities/{sub}` + `/emails`) at login, using read-only service creds
-  (`FB_C2_API_URL`/`FB_C2_SERVICE_USER`/`FB_C2_SERVICE_PASS`). This is what populates the header
-  name and drives `FB_ADMIN_EMAILS` promotion. The auth service still tries the standard userinfo
-  endpoint first, so a properly-configured IdP wouldn't need the lookup.
+- **Name and email come from `userinfo` when the app has a consent policy; the identity-API
+  lookup is only a fallback.** C2 gates every scope except `openid` behind consent
+  (`federation.requiresConsent`), and releases `name` for `profile` and the email claims for
+  `email` (`AttributeService.ClaimsForScopes`). So an app whose application carries a consent
+  policy gets them the ordinary OIDC way. The older note here said C2 releases only `sub` — that
+  was true when this app had no policy registered, and stopped being true once it did.
+
+  Verified against the muni-demo C2's own data: the sibling parking app holds `profile` and
+  `email` consents and has **no** service account in its environment at all. Our client already
+  requests `openid profile email residency`.
+
+  `internal/auth/c2.go` still fetches name + primary email from C2's identity API
+  (`GET /api/identities/{sub}` + `/emails`) using `FB_C2_API_URL` / `FB_C2_SERVICE_USER` /
+  `FB_C2_SERVICE_PASS`, and the auth service tries `userinfo` first. Leave the service
+  credentials unset unless a real login proves `userinfo` comes back bare: `newC2Client` returns
+  nil unless **all three** values are present, so a half-filled config disables the fallback
+  cleanly rather than failing on every login.
+
+- **The `residency` scope this app requests does not exist in C2** (`internal/auth/service.go`
+  asks for `openid profile email residency`). C2 has no such scope, no claim behind it and no
+  mapping for it, so it is never granted and `residency_status` never arrives. That is inert
+  rather than broken — `residencyAsserted()` is false and the app keeps its own entitlement
+  determination, which is where residency now properly lives (`internal/entitlement`). Worth
+  removing when someone is next in that code, but not worth a login-flow change on its own.
 - **Logout runs in both directions** (`C2-Integration-Guide.md` §6). *RP-initiated*: `POST
   /api/auth/logout` deletes the local session and returns `logoutUrl` — C2's `end_session`
   endpoint with `id_token_hint` (the raw ID token, stored on `domain.Session` at login solely
