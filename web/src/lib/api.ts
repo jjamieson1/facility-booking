@@ -102,7 +102,7 @@ export interface FacilityTranslation {
 
 export type SlotStatus = "open" | "booked" | "blackout" | "closed";
 export interface CalendarSlot { start: string; status: SlotStatus }
-export interface CalendarDay { date: string; label: string; isToday: boolean; slots: CalendarSlot[] }
+export interface CalendarDay { date: string; isToday: boolean; slots: CalendarSlot[] }
 export interface FacilityCalendar {
   facilityId: string;
   facilityName: string;

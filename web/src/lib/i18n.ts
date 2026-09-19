@@ -523,6 +523,28 @@ const fr = {
 
 const stored = typeof localStorage !== "undefined" ? localStorage.getItem("lang") : null;
 
+// appLocale is the locale every formatter must use: the language the CITIZEN
+// chose, not the one their browser happens to be set to.
+//
+// Passing `undefined` to toLocaleString and friends means "use the browser's
+// locale", which is why a French page printed "8:00 AM" — the toggle changed
+// the words around the times and never the times themselves. It fails in both
+// directions: an English reader on a French browser saw French formats.
+//
+// fr-CA gives the conventions a French reader expects: the 24-hour clock
+// ("13 h 30"), "20 septembre", "90,00 $" with the sign after the amount.
+//
+// English stays en-US, which is what it has always rendered as, and the choice
+// is deliberate rather than lazy. en-CA would be the tidier pair for an Ontario
+// municipality, but it writes "10 a.m." where en-US writes "10 AM", and those
+// periods wrap onto two lines in the availability calendar's hour gutter. This
+// ticket is about French printing an English clock; silently restyling English
+// and breaking a layout to do it is not part of that. Revisit with the gutter
+// if the pairing ever matters.
+export function appLocale(): string {
+  return i18n.language?.startsWith("fr") ? "fr-CA" : "en-US";
+}
+
 void i18n.use(initReactI18next).init({
   resources: { en: { translation: en }, fr: { translation: fr } },
   lng: stored ?? "en",

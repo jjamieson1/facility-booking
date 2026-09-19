@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { appLocale } from "../lib/i18n";
 import { api, type CalendarDay, type FacilityCalendar, type SlotStatus } from "../lib/api";
 import { Card, Spinner } from "../components/ui";
 
@@ -17,16 +18,35 @@ function addDays(iso: string, n: number): string {
   return d.toISOString().slice(0, 10);
 }
 function hourLabel(minute: number): string {
-  const h = Math.floor(minute / 60);
-  const period = h < 12 ? "AM" : "PM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12} ${period}`;
+  // Built from a real Date so the locale decides the convention: "8 a.m." in
+  // English, "8 h" in French. Assembling "8 AM" by hand printed an English
+  // clock on the French page no matter which language was selected.
+  const d = new Date(2000, 0, 1, Math.floor(minute / 60), minute % 60);
+  return d.toLocaleTimeString(appLocale(), { hour: "numeric" });
+}
+
+// The API also sends a `label` per day, but it is formatted server-side in Go,
+// which has no locale support — it was always English, and the month view even
+// parsed it with split(" ") to get weekday headings. Both are derived here
+// instead, from the date, so they follow the citizen's language.
+function dayLabel(iso: string): string {
+  // Weekday and day are formatted separately and joined, rather than asked for
+  // together: with no month in the request, en-US orders them "14 Mon" while
+  // fr-CA gives "lun. 14". Both languages want weekday first here, and the
+  // column is too narrow to absorb the difference.
+  const d = new Date(iso + "T00:00:00");
+  const weekday = d.toLocaleDateString(appLocale(), { weekday: "short" });
+  const day = d.toLocaleDateString(appLocale(), { day: "numeric" });
+  return `${weekday} ${day}`;
+}
+function weekdayLabel(iso: string): string {
+  return new Date(iso + "T00:00:00").toLocaleDateString(appLocale(), { weekday: "short" });
 }
 function longDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  return new Date(iso + "T00:00:00").toLocaleDateString(appLocale(), { day: "numeric", month: "long", year: "numeric" });
 }
 function monthLabel(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  return new Date(iso + "T00:00:00").toLocaleDateString(appLocale(), { month: "long", year: "numeric" });
 }
 function firstMondayOfMonth(iso: string): string {
   const d = new Date(iso + "T00:00:00");
@@ -134,7 +154,7 @@ export function FacilityCalendar() {
               <div className="bg-white" />
               {cal.days.map((d) => (
                 <div key={d.date} className={`bg-white px-2 py-2 text-center text-sm font-medium ${d.isToday ? "text-red-600" : "text-slate-600"}`}>
-                  {d.label}
+                  {dayLabel(d.date)}
                 </div>
               ))}
 
@@ -193,7 +213,7 @@ function SlotCell({ day, rowIdx, past, onOpen, openLabel }: { day: CalendarDay; 
       <button
         type="button"
         onClick={onOpen}
-        aria-label={`${openLabel} · ${day.label} ${hourLabel(slotMinuteOfDay(slot.start))}`}
+        aria-label={`${openLabel} · ${dayLabel(day.date)} ${hourLabel(slotMinuteOfDay(slot.start))}`}
         className={`h-11 w-full ${statusClass.open} transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500`}
       />
     );
@@ -208,7 +228,7 @@ function slotMinuteOfDay(iso: string): number {
 
 function MonthGrid({ cal, month, onDay }: { cal: FacilityCalendar; month: string; onDay: (date: string) => void }) {
   const now = Date.now();
-  const weekdays = cal.days.slice(0, 7).map((d) => d.label.split(" ")[0]);
+  const weekdays = cal.days.slice(0, 7).map((d) => weekdayLabel(d.date));
   return (
     <div className="grid grid-cols-7 gap-px rounded-lg bg-slate-200">
       {weekdays.map((w) => (

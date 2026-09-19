@@ -1,11 +1,17 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { appLocale } from "../lib/i18n";
 import { api, type Dashboard, type Period, type TrendPoint } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Card, Spinner } from "../components/ui";
 
-const money = (cents: number) => `$${Math.round(cents / 100).toLocaleString()}`;
+// Whole dollars, but placed and grouped by locale: "$1,235" / "1 235 $".
+const money = (cents: number) =>
+  new Intl.NumberFormat(appLocale(), {
+    style: "currency", currency: "CAD", currencyDisplay: "narrowSymbol",
+    maximumFractionDigits: 0,
+  }).format(Math.round(cents / 100));
 
 export function StaffReports() {
   const { t } = useTranslation();
@@ -31,7 +37,7 @@ export function StaffReports() {
       {/* Stat tiles */}
       <div className="grid gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label={t("reports.revenue")} value={money(data.revenueCents)} delta={data.revenueDeltaPct} deltaLabel={data.prevLabel} />
-        <StatTile label={t("reports.bookings")} value={data.bookings.toLocaleString()} delta={data.bookingsDeltaPct} deltaLabel={data.prevLabel} />
+        <StatTile label={t("reports.bookings")} value={data.bookings.toLocaleString(appLocale())} delta={data.bookingsDeltaPct} deltaLabel={data.prevLabel} />
         <StatTile label={t("reports.avgUtil")} value={`${data.avgUtilizationPct}%`} note={t("reports.ofOpenDays")} />
         <StatTile
           label={t("reports.pending")}

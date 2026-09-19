@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { appLocale } from "../lib/i18n";
 import { api, type Facility, type FacilityInput } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Spinner, formatFee } from "../components/ui";
@@ -183,7 +184,7 @@ function BlackoutManager({ facilityId }: { facilityId: string }) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: key }),
   });
 
-  const fmt = (iso: string) => new Date(iso).toLocaleDateString();
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString(appLocale());
 
   return (
     <div className="space-y-4">

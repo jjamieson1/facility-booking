@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { appLocale } from "../lib/i18n";
 import { api, type TxnStatus } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, Card, Input, Spinner, formatDateTime, formatFee } from "../components/ui";
@@ -19,7 +20,7 @@ function shiftISO(iso: string, delta: number): string {
   return d.toISOString().slice(0, 10);
 }
 function fmtDay(iso: string): string {
-  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString(appLocale(), { month: "short", day: "numeric", year: "numeric" });
 }
 type T = (key: string, opts?: Record<string, unknown>) => string;
 function windowLabel(from: string, to: string, t: T): string {
