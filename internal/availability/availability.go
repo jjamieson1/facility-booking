@@ -20,6 +20,7 @@ const (
 	TooLong       Reason = "too_long"
 	Conflict      Reason = "slot_taken"
 	InvalidWindow Reason = "invalid_window"
+	InPast        Reason = "in_past"
 )
 
 // Input bundles everything Check needs. Bookings should be the facility's active
@@ -33,12 +34,33 @@ type Input struct {
 	End       time.Time
 	// ExcludeBookingID lets a modification ignore its own existing booking.
 	ExcludeBookingID string
+	// Now is the clock to judge "past" against. Leave it zero and Check uses
+	// time.Now(); tests set it so a result never depends on when it runs.
+	//
+	// Zero deliberately means "use the real clock", NOT "skip the check". A
+	// zero value that disabled the guard would silently switch it off for every
+	// caller that had not been updated — the same shape of failure as a
+	// database fallback that lets an app boot healthy while writing nowhere.
+	Now time.Time
 }
 
 // Check returns OK when the window is bookable, or the first failing Reason.
 func Check(in Input) Reason {
 	if !in.End.After(in.Start) {
 		return InvalidWindow
+	}
+
+	// A time that has passed cannot be booked. This is checked here, in the one
+	// validator both the display and booking paths share, rather than in each
+	// caller: the booking path had no guard of its own, so a past window was
+	// not merely offered but accepted and auto-confirmed — chargeable, and
+	// counted in the revenue and utilization reports.
+	now := in.Now
+	if now.IsZero() {
+		now = time.Now()
+	}
+	if in.Start.Before(now) {
+		return InPast
 	}
 
 	minutes := int(in.End.Sub(in.Start).Minutes())

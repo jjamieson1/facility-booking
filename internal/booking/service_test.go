@@ -2,6 +2,7 @@ package booking
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -33,10 +34,22 @@ func seedFacility(t *testing.T, db *gorm.DB, requiresApproval bool) (facilityID,
 	return f.ID, u.ID
 }
 
-// A Wednesday 10:00–11:00 window (within opening hours).
+// A Wednesday 10:00–11:00 window (within opening hours), always in the FUTURE:
+// a booking in the past is now rejected, and the previous hardcoded date
+// (2026-07-22) was future when written and silently became the past.
 func window() (time.Time, time.Time) {
-	start := time.Date(2026, 7, 22, 10, 0, 0, 0, time.Local)
+	start := futureWednesday(10, 0)
 	return start, start.Add(time.Hour)
+}
+
+// futureWednesday is a stable weekday at a fixed wall-clock time, far enough
+// ahead that a slow suite cannot drift into the past mid-run.
+func futureWednesday(hour, min int) time.Time {
+	d := time.Now().Local().AddDate(0, 0, 14)
+	for d.Weekday() != time.Wednesday {
+		d = d.AddDate(0, 0, 1)
+	}
+	return time.Date(d.Year(), d.Month(), d.Day(), hour, min, 0, 0, time.Local)
 }
 
 func TestRequestAutoConfirm(t *testing.T) {
@@ -175,7 +188,7 @@ func TestResidentPricing(t *testing.T) {
 	db.Create(&resident)
 	db.Create(&nonResident)
 
-	start := time.Date(2026, 7, 22, 10, 0, 0, 0, time.Local)
+	start := futureWednesday(10, 0)
 	rb, _ := svc.Request(context.Background(), resident.ID, f.ID, start, start.Add(time.Hour), "x", 2, Pricing{Resident: true})
 	nb, _ := svc.Request(context.Background(), nonResident.ID, f.ID, start.Add(3*time.Hour), start.Add(4*time.Hour), "x", 2, Pricing{Resident: false})
 
@@ -193,7 +206,7 @@ func TestRequestRecurring(t *testing.T) {
 	fid, uid := seedFacility(t, db, false)
 
 	// Wednesday 10:00–11:00, weekly for 4 weeks.
-	start := time.Date(2026, 7, 22, 10, 0, 0, 0, time.Local)
+	start := futureWednesday(10, 0)
 	end := start.Add(time.Hour)
 
 	// Pre-book week 3's slot so it must be skipped as a conflict.
@@ -230,5 +243,57 @@ func TestCancelForbiddenForOtherResident(t *testing.T) {
 	stranger := &domain.User{Base: domain.Base{ID: "other"}, Role: domain.RoleResident}
 	if _, err := svc.Cancel(context.Background(), stranger, b.ID); err != ErrForbidden {
 		t.Errorf("stranger cancel err = %v, want ErrForbidden", err)
+	}
+}
+
+// A booking in the past must be refused. This is the fault FAC-46 recorded: the
+// booking path validated only through availability.Check, which had no past
+// guard, so a request for yesterday was accepted AND auto-confirmed — a citizen
+// could be charged for a time that had already gone, and it counted toward the
+// revenue and utilization reports.
+func TestRequestRejectsAStartInThePast(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := seedFacility(t, db, false) // auto-confirm: nothing else would stop it
+
+	start := time.Now().Local().AddDate(0, 0, -1).Truncate(time.Hour)
+	end := start.Add(time.Hour)
+
+	if _, err := svc.Request(context.Background(), uid, fid, start, end, "yesterday", 10, Pricing{}); !errors.Is(err, ErrNotBookable) {
+		t.Fatalf("Request for a past window = %v, want ErrNotBookable", err)
+	}
+
+	var n int64
+	db.Model(&domain.Booking{}).Where("facility_id = ?", fid).Count(&n)
+	if n != 0 {
+		t.Errorf("%d booking(s) written for a past window; it must leave no row", n)
+	}
+}
+
+// Rescheduling must not move a booking backwards into the past either — the
+// reschedule path runs the same validator, and this pins that it stays wired up.
+func TestRescheduleRejectsAMoveIntoThePast(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := seedFacility(t, db, false)
+
+	start, end := window()
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+
+	var actor domain.User
+	db.First(&actor, "id = ?", uid)
+
+	past := time.Now().Local().AddDate(0, 0, -1).Truncate(time.Hour)
+	if _, err := svc.Reschedule(context.Background(), &actor, b.ID, past, past.Add(time.Hour)); err == nil {
+		t.Fatal("Reschedule into the past succeeded, want an error")
+	}
+
+	var got domain.Booking
+	db.First(&got, "id = ?", b.ID)
+	if !got.StartsAt.Equal(start) {
+		t.Errorf("booking moved to %s; a refused reschedule must leave it at %s", got.StartsAt, start)
 	}
 }

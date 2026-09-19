@@ -43,6 +43,19 @@ func makeFacility(t *testing.T, db *gorm.DB, name string, capacity int) domain.F
 	return f
 }
 
+// futureWednesday is a stable weekday at a fixed wall-clock time, always in the
+// FUTURE. Availability now rejects a window that has passed, so a fixture may
+// not hardcode a calendar date: the previous one (2026-07-22) was future when
+// written and silently became the past, which fails the test for a reason that
+// has nothing to do with the code under test.
+func futureWednesday(hour, min int) time.Time {
+	d := time.Now().Local().AddDate(0, 0, 14)
+	for d.Weekday() != time.Wednesday {
+		d = d.AddDate(0, 0, 1)
+	}
+	return time.Date(d.Year(), d.Month(), d.Day(), hour, min, 0, 0, time.Local)
+}
+
 func TestSearchByWindow(t *testing.T) {
 	db := newDB(t)
 	svc := NewService(db)
@@ -50,7 +63,7 @@ func TestSearchByWindow(t *testing.T) {
 	makeFacility(t, db, "Big Hall", 200)
 
 	// Wednesday 14:00–17:00 (local wall-clock — opening hours are local).
-	from := time.Date(2026, 7, 22, 14, 0, 0, 0, time.Local)
+	from := futureWednesday(14, 0)
 	to := from.Add(3 * time.Hour)
 
 	// Confirmed booking blocks Small Room for the window.
@@ -83,7 +96,7 @@ func TestSearchByWindow(t *testing.T) {
 	}
 
 	// Outside opening hours → nothing free.
-	night := time.Date(2026, 7, 22, 23, 0, 0, 0, time.Local)
+	night := futureWednesday(23, 0)
 	got, _ = svc.Search(context.Background(), Filter{}, night, night.Add(time.Hour))
 	if len(got) != 0 {
 		t.Errorf("outside hours = %v, want none", names(got))
@@ -141,7 +154,7 @@ func TestBlackoutBlocksBooking(t *testing.T) {
 	svc := NewService(db)
 	hall := makeFacility(t, db, "Hall", 100)
 
-	day := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	day := futureWednesday(0, 0).UTC().Truncate(24 * time.Hour)
 	from := day.Add(14 * time.Hour)
 	to := from.Add(2 * time.Hour)
 
@@ -216,5 +229,32 @@ func TestDayAvailabilityHonoursAMinimumLongerThanAnHour(t *testing.T) {
 	last := slots[len(slots)-1]
 	if closeAt := day.Add(1320 * time.Minute); last.End.After(closeAt) {
 		t.Errorf("last slot ends %s, after closing %s", last.End, closeAt)
+	}
+}
+
+// Today's slots that have already passed must not be offered. buildSlots takes
+// the clock so this is decided by a fixed time rather than by when the suite
+// happens to run.
+func TestBuildSlotsDoesNotOfferPassedTimesToday(t *testing.T) {
+	f := domain.Facility{Base: domain.Base{ID: "f1"}, MinMinutes: 60, MaxMinutes: 600}
+	rules := make([]domain.AvailabilityRule, 7)
+	for i := range rules {
+		rules[i] = domain.AvailabilityRule{Weekday: i, OpenMinute: 8 * 60, CloseMinute: 22 * 60}
+	}
+
+	day := futureWednesday(0, 0)
+	noon := day.Add(12 * time.Hour) // pretend "now" is midday
+
+	slots := buildSlots(f, rules, nil, nil, day, noon)
+	if len(slots) == 0 {
+		t.Fatal("no slots built")
+	}
+	for _, s := range slots {
+		switch {
+		case s.Start.Before(noon) && s.Available:
+			t.Errorf("slot at %s is before now (%s) but offered as available", s.Start, noon)
+		case !s.Start.Before(noon) && !s.Available:
+			t.Errorf("slot at %s is in the future on an empty day but not offered", s.Start)
+		}
 	}
 }
