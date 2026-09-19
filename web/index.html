@@ -3,9 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Pre-hydration fallback only: App sets the real title from
-         src/lib/brand.ts, which is the single source (FAC-20). -->
-    <title>Rivermont Spaces — Book a municipal facility</title>
+    <!-- Substituted at build time from src/lib/brand.ts by the brandTitle
+         plugin in vite.config.ts, which fails the build if this tag goes
+         missing. Static HTML cannot read a TS module, and naming the
+         municipality here was the last place a rebrand had to be remembered
+         (FAC-20).
+
+         What ships below is only a pre-hydration fallback in any case: App
+         sets the real title from the same source once React mounts. The text
+         here is deliberately generic, so if the substitution ever stops
+         running the tab says something true rather than a stale brand. -->
+    <title>Facility booking</title>
     <link rel="icon" type="image/svg+xml" href="./brand-mark.svg" />
   </head>
   <body>
