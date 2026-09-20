@@ -3,6 +3,7 @@ package booking
 import (
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
@@ -295,5 +296,138 @@ func TestRescheduleRejectsAMoveIntoThePast(t *testing.T) {
 	db.First(&got, "id = ?", b.ID)
 	if !got.StartsAt.Equal(start) {
 		t.Errorf("booking moved to %s; a refused reschedule must leave it at %s", got.StartsAt, start)
+	}
+}
+
+// paidFacility is the case the pre-FAC-52 fixtures never exercised: every one
+// of them had FeeCents zero, so the whole suite took the free path and a
+// chargeable booking's lifecycle was untested.
+func paidFacility(t *testing.T, db *gorm.DB, requiresApproval bool, feeCents int) (facilityID, userID string) {
+	t.Helper()
+	f := domain.Facility{
+		Name: "Paid Hall", Capacity: 50, RequiresApproval: requiresApproval,
+		FeeCents: feeCents, NonResidentFeeCents: feeCents,
+		MinMinutes: 60, MaxMinutes: 240, BufferMinutes: 30,
+	}
+	if err := db.Create(&f).Error; err != nil {
+		t.Fatal(err)
+	}
+	for wd := 0; wd < 7; wd++ {
+		db.Create(&domain.AvailabilityRule{FacilityID: f.ID, Weekday: wd, OpenMinute: 8 * 60, CloseMinute: 22 * 60})
+	}
+	u := domain.User{Subject: "s-paid-" + uuid.NewString(), Email: "r@x", Role: domain.RoleResident}
+	db.Create(&u)
+	return f.ID, u.ID
+}
+
+// A chargeable slot is not booked until it is paid for: it holds, awaiting
+// payment, rather than confirming outright (FAC-52).
+func TestChargeableBookingHoldsAwaitingPayment(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, false, 15000)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Status != domain.StatusAwaitingPayment {
+		t.Errorf("status = %q, want awaiting_payment", b.Status)
+	}
+}
+
+// A free booking has nothing to collect, so it confirms outright — no invoice
+// and no hold timer for a resident to race.
+func TestFreeBookingStillConfirmsImmediately(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, false, 0)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Status != domain.StatusConfirmed {
+		t.Errorf("status = %q, want confirmed for a free facility", b.Status)
+	}
+}
+
+// Approval comes before money. A denial must never take a payment this app
+// cannot give back — C2 accepts refund instructions from an operator, not us.
+func TestApprovalPrecedesPaymentOnAChargeableFacility(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, true, 15000)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Status != domain.StatusPending {
+		t.Fatalf("status = %q, want pending before staff decide", b.Status)
+	}
+	var n int64
+	db.Model(&domain.Payment{}).Where("booking_id = ?", b.ID).Count(&n)
+	if n != 0 {
+		t.Errorf("%d payment row(s) before approval; nothing may be billed until staff say yes", n)
+	}
+
+	staff := domain.User{Subject: "st-" + uuid.NewString(), Role: domain.RoleStaff}
+	db.Create(&staff)
+	after, err := svc.Approve(context.Background(), staff.ID, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Status != domain.StatusAwaitingPayment {
+		t.Errorf("status after approval = %q, want awaiting_payment", after.Status)
+	}
+}
+
+// Approving a FREE booking has nothing to collect, so it confirms.
+func TestApprovingAFreeBookingConfirmsIt(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, true, 0)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	staff := domain.User{Subject: "st-" + uuid.NewString(), Role: domain.RoleStaff}
+	db.Create(&staff)
+	after, err := svc.Approve(context.Background(), staff.ID, b.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Status != domain.StatusConfirmed {
+		t.Errorf("status = %q, want confirmed for a free booking", after.Status)
+	}
+}
+
+// The whole point of a hold: it blocks the slot exactly as a confirmed booking
+// does. If awaiting_payment ever fell out of ActiveStatuses the slot would
+// double-book, which is the failure CLAUDE.md warns that list exists to prevent.
+func TestAHoldBlocksTheSlotForEveryoneElse(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, false, 15000)
+	start, end := window()
+
+	first, err := svc.Request(context.Background(), uid, fid, start, end, "mine", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Status != domain.StatusAwaitingPayment {
+		t.Fatalf("status = %q, want awaiting_payment", first.Status)
+	}
+
+	other := domain.User{Subject: "other-" + uuid.NewString(), Role: domain.RoleResident}
+	db.Create(&other)
+	if _, err := svc.Request(context.Background(), other.ID, fid, start, end, "theirs", 10, Pricing{}); !errors.Is(err, ErrNotBookable) {
+		t.Errorf("second request = %v, want ErrNotBookable — an unpaid hold must still hold", err)
 	}
 }

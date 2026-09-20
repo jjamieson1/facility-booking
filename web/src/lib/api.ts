@@ -123,7 +123,16 @@ export interface Slot {
 
 // "conditional" is approved subject to conditions the resident has not met yet
 // (§4.5). It is short of confirmed but still holds the slot.
-export type BookingStatus = "pending" | "conditional" | "confirmed" | "denied" | "cancelled";
+// "awaiting_payment": approved or auto-approved, holding the slot, unpaid. It
+// blocks the slot exactly as "confirmed" does, and is released if the hold
+// expires (FAC-52).
+export type BookingStatus =
+  | "pending"
+  | "awaiting_payment"
+  | "conditional"
+  | "confirmed"
+  | "denied"
+  | "cancelled";
 
 // BookingCondition is what staff attached to a conditional approval.
 export interface BookingCondition {

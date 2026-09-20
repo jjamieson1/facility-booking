@@ -13,9 +13,16 @@ const (
 	// space would be sold out from under a resident who is busy satisfying the
 	// conditions staff set.
 	StatusConditional BookingStatus = "conditional"
-	StatusConfirmed   BookingStatus = "confirmed" // holds the slot for everyone
-	StatusDenied      BookingStatus = "denied"
-	StatusCancelled   BookingStatus = "cancelled"
+	// StatusAwaitingPayment is approved (or auto-approved) but unpaid, and it
+	// HOLDS THE SLOT while the resident pays. Distinct from pending, which
+	// means awaiting a staff decision: an auto-confirm facility has no decision
+	// to wait for, and the two need telling apart in the UI and in the sweeper.
+	//
+	// A hold is released if it goes unpaid past the window (internal/unpaid).
+	StatusAwaitingPayment BookingStatus = "awaiting_payment"
+	StatusConfirmed       BookingStatus = "confirmed" // holds the slot for everyone
+	StatusDenied          BookingStatus = "denied"
+	StatusCancelled       BookingStatus = "cancelled"
 )
 
 // Booking is a reservation of a facility for a time window. Only Confirmed (and
@@ -61,7 +68,7 @@ type Booking struct {
 // calendar offers slots that fail on submit, or worse, the lock query stops
 // seeing a booking that is really there and the slot double-books.
 func ActiveStatuses() []BookingStatus {
-	return []BookingStatus{StatusPending, StatusConditional, StatusConfirmed}
+	return []BookingStatus{StatusPending, StatusAwaitingPayment, StatusConditional, StatusConfirmed}
 }
 
 // Active reports whether this booking should block its slot against others.

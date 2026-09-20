@@ -113,7 +113,12 @@ func main() {
 	// popular slot until its own start time — free denial-of-service on the
 	// calendar. 24h by product decision; the freed slot opens the waitlist, which
 	// is the reason for releasing early rather than at the start time.
-	go unpaid.NewSweeper(gdb, notifier, 24*time.Hour, 15*time.Minute, func(b domain.Booking) {
+	// 15 minutes to pay, scanned every minute: a slot is not booked until it is
+	// paid for (FAC-52), so an abandoned checkout should return to the calendar
+	// in minutes rather than the day the old window allowed. The scan interval
+	// is well under the hold, or a hold would outlive its window by up to one
+	// scan — a 15-minute hold on a 15-minute scan can last 30.
+	go unpaid.NewSweeper(gdb, notifier, 15*time.Minute, time.Minute, func(b domain.Booking) {
 		_, _ = waitlistSvc.NotifyFreed(context.Background(), b.FacilityID, b.StartsAt, b.EndsAt)
 	}).Run(context.Background())
 

@@ -7,7 +7,9 @@ import (
 
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
 	"github.com/jjamieson1/facility-booking/internal/auth"
+	"github.com/jjamieson1/facility-booking/internal/booking"
 	"github.com/jjamieson1/facility-booking/internal/c2"
+	"github.com/jjamieson1/facility-booking/internal/calendar"
 	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
 )
@@ -18,6 +20,7 @@ type paymentCallbackHandler struct {
 	payments *payment.Service
 	audit    auditlog.Recorder
 	notifier notify.Notifier
+	bookings *booking.Service
 }
 
 // settle applies a payment or refund that C2 reports.
@@ -105,7 +108,41 @@ func (h paymentCallbackHandler) settle(w http.ResponseWriter, r *http.Request) {
 	if applied && !st.Refund && h.notifier != nil {
 		h.notifier.PaymentReceipt(pay.BookingID, st.AmountCents, st.GatewayRef)
 	}
+
+	// Money landing is what turns a held slot into a booking (FAC-52). Routed
+	// through ConfirmIfSatisfied rather than setting the status here, because
+	// that function is the only gate: a booking may also be carrying staff
+	// conditions, and this path must not confirm one whose terms are unmet.
+	if applied && !st.Refund {
+		h.confirmIfPaid(r, pay.BookingID)
+	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// confirmIfPaid promotes a paid hold to a confirmed booking and tells the
+// booker, with the invite.
+//
+// Best-effort, deliberately: the money is recorded and the callback has to be
+// acknowledged so C2 stops redelivering. A booking left holding its slot after a
+// successful payment is visible and fixable; a redelivery loop is not.
+func (h paymentCallbackHandler) confirmIfPaid(r *http.Request, bookingID string) {
+	if h.bookings == nil {
+		return
+	}
+	// hasDocument=false is safe here: this path only completes a booking whose
+	// sole outstanding item was the money. One still owing a document stays
+	// unconfirmed, and the upload route runs the same gate again.
+	b, confirmed, err := h.bookings.ConfirmIfSatisfied(r.Context(), bookingID, false)
+	if err != nil || !confirmed || b == nil {
+		return
+	}
+	if h.notifier != nil {
+		full, _ := h.bookings.Get(r.Context(), bookingID)
+		if full != nil {
+			h.notifier.BookingConfirmed(*full, calendar.Invite(*full))
+		}
+	}
+	h.recordAudit(r, "booking.paid.confirmed", bookingID, "Payment settled; booking confirmed")
 }
 
 // recordAudit mirrors the settlement to the central audit service. There is no

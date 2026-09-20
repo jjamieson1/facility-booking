@@ -15,9 +15,18 @@ export function BookingDetail() {
   if (isLoading) return <Spinner />;
   if (!b) return <p className="text-red-600">{t("booking.notFound")}</p>;
 
-  const needsPayment = b.feeCents > 0 && b.payment?.status !== "paid" && b.status !== "cancelled" && b.status !== "denied";
+  // Payment is offered once the booking is entitled to be paid for — never
+  // while it is pending, because approval comes before money: charging a
+  // resident before staff decide means a denial owes a refund this app cannot
+  // issue (FAC-52).
+  const needsPayment =
+    b.feeCents > 0 &&
+    b.payment?.status !== "paid" &&
+    (b.status === "awaiting_payment" || b.status === "conditional");
   const upcoming = new Date(b.startsAt) > new Date();
-  const canModify = upcoming && (b.status === "pending" || b.status === "confirmed");
+  // A hold is the resident's to abandon: cancelling one takes no money and owes
+  // no refund, since nothing has been paid.
+  const canModify = upcoming && (b.status === "pending" || b.status === "awaiting_payment" || b.status === "confirmed");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -42,6 +51,11 @@ export function BookingDetail() {
         {b.status === "pending" && (
           <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
             {t("booking.pendingMsg")}
+          </div>
+        )}
+        {b.status === "awaiting_payment" && (
+          <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            {t("booking.awaitingPaymentMsg")}
           </div>
         )}
         {b.status === "confirmed" && (
