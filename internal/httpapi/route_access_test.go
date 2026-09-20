@@ -94,6 +94,7 @@ var routeAccess = map[string]access{
 	"POST /api/bookings/{id}/cancel":            accessSession,
 	"GET /api/bookings/{id}/refund-quote":       accessSession,
 	"POST /api/bookings/{id}/pay":               accessSession,
+	"GET /api/payments/method":                  accessSession, // how to pay; a guest can be billed too
 	"POST /api/bookings/{id}/waiver":            accessSession,
 	"GET /api/bookings/{id}/waiver":             accessSession,
 

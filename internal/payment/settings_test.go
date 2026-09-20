@@ -197,3 +197,47 @@ func TestRefundRefusesAProviderMismatch(t *testing.T) {
 		t.Fatalf("want ErrProviderMismatch, got %v", err)
 	}
 }
+
+// The booking page asks the server how the resident will pay BEFORE any bill
+// exists, because until one is raised there is no payUrl to infer it from.
+// That answer is this: the effective module's HostedCheckout flag. If it ever
+// stopped reflecting the selection, the simulated card form would reappear over
+// a real gateway — which is the bug this pins (FAC-51).
+func TestEffectiveModuleReportsWhetherCheckoutIsHosted(t *testing.T) {
+	db := testdb.New(t)
+	svc := NewSettingsService(db, nil)
+	admin := domain.User{Role: domain.RoleAdmin}
+
+	// Default: the simulated gateway takes a card here.
+	set, err := svc.Get(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, ok := ModuleFor(set.Effective)
+	if !ok {
+		t.Fatalf("no module for default kind %q", set.Effective)
+	}
+	if m.HostedCheckout {
+		t.Errorf("default module %q reports hosted checkout; the card form would never render", set.Effective)
+	}
+
+	// Selecting the C2 broker must flip it, or the resident is shown a card form
+	// for a gateway that takes no card here.
+	if _, err := svc.Set(context.Background(), KindC2, map[string]string{}, admin); err != nil {
+		t.Fatal(err)
+	}
+	set, err = svc.Get(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if set.Effective != KindC2 {
+		t.Fatalf("effective = %q after selecting c2, want c2", set.Effective)
+	}
+	m, ok = ModuleFor(set.Effective)
+	if !ok {
+		t.Fatalf("no module for %q", set.Effective)
+	}
+	if !m.HostedCheckout {
+		t.Error("C2 broker does not report hosted checkout; the booking page would render the simulated card form over a real gateway")
+	}
+}

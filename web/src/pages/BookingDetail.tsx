@@ -253,6 +253,7 @@ function PaymentCard({ booking }: { booking: Booking }) {
   const qc = useQueryClient();
   const [card, setCard] = useState("4242 4242 4242 4242");
   const [error, setError] = useState("");
+  const method = useQuery({ queryKey: ["paymentMethod"], queryFn: api.paymentMethod });
 
   const pay = useMutation({
     mutationFn: () => api.pay(booking.id, card),
@@ -262,10 +263,17 @@ function PaymentCard({ booking }: { booking: Booking }) {
 
   // A hosted gateway (C2's payment broker) runs its own checkout, so there is no
   // card form to render here — the resident is sent away to pay and comes back.
-  // Driven off the payment the server actually created rather than off the
-  // configured module, so the card form can never appear over a hosted bill.
   if (booking.payment?.payUrl) {
     return <HostedPaymentCard booking={booking} payUrl={booking.payment.payUrl} />;
+  }
+
+  // ...and before any bill exists there is no payUrl to read, so the gateway
+  // has to be asked. Deciding from the payment alone meant the very first
+  // payment attempt always rendered the simulated card form, whatever gateway
+  // the municipality had configured: the resident typed a card number into a
+  // form whose value the server then discarded.
+  if (method.data?.hostedCheckout) {
+    return <StartHostedPaymentCard booking={booking} gateway={method.data.name} />;
   }
 
   return (
@@ -290,6 +298,48 @@ function PaymentCard({ booking }: { booking: Booking }) {
       <Button className="w-full" disabled={pay.isPending} onClick={() => { setError(""); pay.mutate(); }}>
         {pay.isPending ? t("booking.processing") : t("booking.pay", { price: formatFee(booking.feeCents) })}
       </Button>
+    </Card>
+  );
+}
+
+// StartHostedPaymentCard raises the bill and sends the resident to the gateway.
+//
+// Raising it is what produces the payUrl, so the bill has to exist before the
+// resident can be sent anywhere — that is the whole reason this is a button and
+// not a link. The card argument is empty because a hosted gateway takes no card
+// here; the server ignores it on this path.
+function StartHostedPaymentCard({ booking, gateway }: { booking: Booking; gateway: string }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [error, setError] = useState("");
+
+  const start = useMutation({
+    mutationFn: () => api.pay(booking.id, ""),
+    onSuccess: (p) => {
+      void qc.invalidateQueries({ queryKey: ["booking", booking.id] });
+      void qc.invalidateQueries({ queryKey: ["myBookings"] });
+      // Same tab: the resident is mid-payment and comes back to the booking,
+      // and a popup here is the thing a browser is most likely to block.
+      if (p.payUrl) window.location.href = p.payUrl;
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <Card className="space-y-4 p-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">{t("booking.pay", { price: formatFee(booking.feeCents) })}</h3>
+        <span className="text-xs text-slate-500">{gateway}</span>
+      </div>
+
+      <p className="text-sm text-slate-600">{t("booking.hostedIntro")}</p>
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
+      <Button className="w-full" disabled={start.isPending} onClick={() => { setError(""); start.mutate(); }}>
+        {start.isPending ? t("booking.processing") : t("booking.payAtPortal")}
+      </Button>
+
+      <p className="text-xs text-slate-500">{t("booking.hostedHold")}</p>
     </Card>
   );
 }
