@@ -19,6 +19,8 @@ func (c *capturingNotifier) BookingDenied(domain.Booking)            {}
 func (c *capturingNotifier) BookingConditional(domain.Booking)       {}
 func (c *capturingNotifier) BookingCancelled(domain.Booking, string) {}
 func (c *capturingNotifier) BookingReminder(domain.Booking, string)  {}
+func (c *capturingNotifier) PaymentReceipt(string, int, string)      {}
+
 func (c *capturingNotifier) WaitlistOpened(e domain.WaitlistEntry, _ string) {
 	c.opened = append(c.opened, e.UserID)
 }

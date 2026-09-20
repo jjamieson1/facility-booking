@@ -54,22 +54,27 @@ func BookingIDFromRef(ref string) (string, bool) {
 // once for the same event as a matter of course. Applying a payment twice would
 // double-count revenue on the §4.8 report; applying a refund twice would close
 // an obligation that is still owed.
-func (s *Service) ApplySettlement(ctx context.Context, st Settlement) (*domain.Payment, error) {
+// The bool reports whether this call actually applied the event. It is false
+// for a redelivery, which is not an error — but the caller needs to tell the two
+// apart, because anything that reaches the citizen must happen once. Sending a
+// receipt on every redelivery would mail a resident a fresh receipt each time C2
+// retried.
+func (s *Service) ApplySettlement(ctx context.Context, st Settlement) (*domain.Payment, bool, error) {
 	bookingID, ok := BookingIDFromRef(st.Ref)
 	if !ok {
-		return nil, fmt.Errorf("%w: %q", ErrUnknownBill, st.Ref)
+		return nil, false, fmt.Errorf("%w: %q", ErrUnknownBill, st.Ref)
 	}
 	var pay domain.Payment
 	if err := s.db.WithContext(ctx).First(&pay, "booking_id = ?", bookingID).Error; err != nil {
-		return nil, fmt.Errorf("%w: %q", ErrUnknownBill, st.Ref)
+		return nil, false, fmt.Errorf("%w: %q", ErrUnknownBill, st.Ref)
 	}
 	if s.alreadyApplied(ctx, bookingID, st) {
-		return &pay, nil
+		return &pay, false, nil
 	}
 	if st.Refund {
-		return &pay, s.applyRefund(ctx, pay, st)
+		return &pay, true, s.applyRefund(ctx, pay, st)
 	}
-	return &pay, s.applyPayment(ctx, pay, st)
+	return &pay, true, s.applyPayment(ctx, pay, st)
 }
 
 // alreadyApplied reports whether this exact gateway event is already on the

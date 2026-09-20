@@ -7,9 +7,14 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/domain"
 )
 
-// message is one notification's text, in the recipient's language. Short is used
-// for SMS and must stand alone: a citizen who reads only the SMS should still
-// know what happened and to which booking.
+// message is one notification's text, in the recipient's language.
+//
+// Short is sent as the SMS form, but do NOT design around it being read: C2
+// never puts the message in a text (docs/builder/notifications.md §6). The SMS
+// says only that something arrived and from whom, because a text lands
+// unencrypted on a lock screen and often on a shared device. This comment used
+// to claim the opposite — that Short must stand alone because someone may read
+// only that — which was a premise the platform contradicts.
 type message struct {
 	Title string
 	Body  string
@@ -247,6 +252,35 @@ func waitlistOpened(e domain.WaitlistEntry, facility, l, bookURL string) message
 	}
 	if bookURL != "" {
 		m.Body += " Book it here: " + bookURL
+	}
+	return m
+}
+
+
+// paymentReceipt confirms money taken. It carries the gateway's reference so a
+// resident can match it to the line on their card statement, and the facility
+// and date so the receipt means something on its own months later.
+func paymentReceipt(b domain.Booking, l string, amountCents int, gatewayRef string) message {
+	name, at := facilityName(b), when(b.StartsAt, l)
+	amount := money(amountCents, l) // already renders "50,00 $" in French
+	if l == "fr" {
+		m := message{
+			Title: "Reçu de paiement",
+			Body:  fmt.Sprintf("Nous avons reçu %s pour votre réservation de %s le %s.", amount, name, at),
+			Short: fmt.Sprintf("Paiement reçu : %s.", amount),
+		}
+		if gatewayRef != "" {
+			m.Body += fmt.Sprintf(" Référence de la transaction : %s.", gatewayRef)
+		}
+		return m
+	}
+	m := message{
+		Title: "Payment receipt",
+		Body:  fmt.Sprintf("We received %s for your booking of %s on %s.", amount, name, at),
+		Short: fmt.Sprintf("Payment received: %s.", amount),
+	}
+	if gatewayRef != "" {
+		m.Body += fmt.Sprintf(" Transaction reference: %s.", gatewayRef)
 	}
 	return m
 }

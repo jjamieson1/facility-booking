@@ -67,7 +67,7 @@ func New(d Deps) http.Handler {
 	}
 
 	fac := facilityHandler{svc: d.Facility}
-	pcb := paymentCallbackHandler{auth: d.Auth, payments: d.Payment, audit: d.Audit}
+	pcb := paymentCallbackHandler{auth: d.Auth, payments: d.Payment, audit: d.Audit, notifier: d.Notifier}
 	bk := bookingHandler{bookings: d.Booking, facilities: d.Facility, payments: d.Payment, waitlist: d.Waitlist, waiver: d.Waiver, entitlements: d.Entitlements, policies: d.Policy, notifier: d.Notifier, audit: d.Audit}
 	wv := waiverHandler{svc: d.Waiver, onUploaded: bk.settleConditions}
 	rep := reportHandler{svc: d.Reports}

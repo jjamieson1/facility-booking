@@ -111,6 +111,28 @@ func (n *C2Notifier) WaitlistOpened(e domain.WaitlistEntry, facilityName string)
 
 // toBooker resolves the booking's owner and sends them the message their
 // language calls for.
+// PaymentReceipt confirms money taken for a booking. C2 raises the invoice and
+// hosts the checkout, but it does not send a receipt on our behalf — that is
+// ours (docs/builder/payments.md, "Issuing a receipt").
+//
+// One message goes to C2; C2 decides the channels from the citizen's own
+// preferences, exactly as for every other booking event. We do not send email.
+func (n *C2Notifier) PaymentReceipt(bookingID string, amountCents int, gatewayRef string) {
+	if n.db == nil {
+		return
+	}
+	var b domain.Booking
+	if err := n.db.Preload("Facility").First(&b, "id = ?", bookingID).Error; err != nil {
+		// The settlement is already recorded; a receipt we cannot address is a
+		// lost courtesy, not a lost payment.
+		log.Printf("notify: payment receipt for unknown booking %s: %v", bookingID, err)
+		return
+	}
+	n.toBooker(b, func(b domain.Booking, l string) message {
+		return paymentReceipt(b, l, amountCents, gatewayRef)
+	})
+}
+
 func (n *C2Notifier) toBooker(b domain.Booking, build func(b domain.Booking, l string) message) {
 	u, ok := n.user(b.UserID)
 	if !ok {

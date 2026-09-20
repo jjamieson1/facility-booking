@@ -293,3 +293,60 @@ func TestTranslationDoesNotLeakBetweenRecipients(t *testing.T) {
 		t.Fatalf("each recipient should see their own language (english=%v french=%v)", sawEnglish, sawFrench)
 	}
 }
+
+// C2 raises the invoice and hosts the checkout but does not send a receipt on
+// our behalf, so we do — as one notification to C2, which fans it out to the
+// citizen's own channels (docs/builder/payments.md, "Issuing a receipt").
+func TestPaymentReceiptCarriesTheAmountAndGatewayReference(t *testing.T) {
+	n, cap, db := newNotifier(t)
+	u := mkUser(t, db, domain.RoleResident, "en")
+	b := mkBooking(t, db, u)
+
+	n.PaymentReceipt(b.ID, 15000, "ch_3PabcXYZ")
+
+	sent := cap.all()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d notifications, want 1", len(sent))
+	}
+	got := sent[0]
+	if got.Subject != u.Subject {
+		t.Errorf("sent to %q, want the citizen's OIDC sub", got.Subject)
+	}
+	for _, want := range []string{"$150.00", "ch_3PabcXYZ", "Rivermont Hall"} {
+		if !strings.Contains(got.Title+got.Body, want) {
+			t.Errorf("receipt missing %q: %q / %q", want, got.Title, got.Body)
+		}
+	}
+}
+
+// The amount is money, so it has to be written the way each language writes it.
+func TestPaymentReceiptIsInTheRecipientsLanguage(t *testing.T) {
+	n, cap, db := newNotifier(t)
+	u := mkUser(t, db, domain.RoleResident, "fr")
+	b := mkBooking(t, db, u)
+
+	n.PaymentReceipt(b.ID, 15000, "ch_3P")
+
+	sent := cap.all()
+	if len(sent) != 1 {
+		t.Fatalf("sent %d notifications, want 1", len(sent))
+	}
+	body := sent[0].Title + sent[0].Body
+	if !strings.Contains(body, "150,00 $") {
+		t.Errorf("French receipt should write the amount as 150,00 $: %q", body)
+	}
+	if strings.Contains(body, "$150.00") {
+		t.Errorf("French receipt used the English amount format: %q", body)
+	}
+}
+
+// A settlement for a booking that is no longer there must not panic or send: the
+// money is already recorded, and a receipt we cannot address is a lost courtesy
+// rather than a lost payment.
+func TestPaymentReceiptForUnknownBookingIsSilent(t *testing.T) {
+	n, cap, _ := newNotifier(t)
+	n.PaymentReceipt(uuid.NewString(), 15000, "ch_3P")
+	if sent := cap.all(); len(sent) != 0 {
+		t.Errorf("sent %d notifications for an unknown booking, want 0", len(sent))
+	}
+}
