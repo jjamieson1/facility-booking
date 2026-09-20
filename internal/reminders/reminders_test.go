@@ -22,6 +22,8 @@ func (c *capturingNotifier) BookingCancelled(domain.Booking, string) {}
 func (c *capturingNotifier) BookingReminder(b domain.Booking, _ string) {
 	c.reminded = append(c.reminded, b.ID)
 }
+func (c *capturingNotifier) PaymentReceipt(string, int, string) {}
+
 func (c *capturingNotifier) WaitlistOpened(domain.WaitlistEntry, string) {}
 
 func newDB(t *testing.T) *gorm.DB {

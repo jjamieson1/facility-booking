@@ -24,6 +24,15 @@ type Notifier interface {
 	BookingReminder(b domain.Booking, instructions string)
 	// WaitlistOpened tells a waitlisted resident that a slot they wanted is free.
 	WaitlistOpened(e domain.WaitlistEntry, facilityName string)
+	// PaymentReceipt confirms money taken for a booking, with the gateway's own
+	// reference so a resident querying the charge on their statement can be
+	// matched to it. C2 raises the invoice and hosts the checkout, but the
+	// receipt is ours: the guide is explicit that C2 does not send one on our
+	// behalf (docs/builder/payments.md, "Issuing a receipt").
+	//
+	// Takes a booking id rather than a booking because the caller is the
+	// settlement callback, which holds a payment and no booking.
+	PaymentReceipt(bookingID string, amountCents int, gatewayRef string)
 }
 
 // LogNotifier writes notifications to the server log — visible proof in the demo
@@ -55,6 +64,10 @@ func (LogNotifier) BookingCancelled(b domain.Booking, _ string) {
 
 func (LogNotifier) BookingReminder(b domain.Booking, instructions string) {
 	log.Printf("notify: reminder for booking %s (%s) → before-use instructions: %q", b.ID, b.StartsAt.Format("Jan 2 15:04"), instructions)
+}
+
+func (LogNotifier) PaymentReceipt(bookingID string, amountCents int, gatewayRef string) {
+	log.Printf("notify: payment receipt booking=%s amount=%d gatewayRef=%s", bookingID, amountCents, gatewayRef)
 }
 
 func (LogNotifier) WaitlistOpened(e domain.WaitlistEntry, facilityName string) {

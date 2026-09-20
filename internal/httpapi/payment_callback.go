@@ -8,6 +8,7 @@ import (
 	"github.com/jjamieson1/facility-booking/internal/auditlog"
 	"github.com/jjamieson1/facility-booking/internal/auth"
 	"github.com/jjamieson1/facility-booking/internal/c2"
+	"github.com/jjamieson1/facility-booking/internal/notify"
 	"github.com/jjamieson1/facility-booking/internal/payment"
 )
 
@@ -16,6 +17,7 @@ type paymentCallbackHandler struct {
 	auth     *auth.Service
 	payments *payment.Service
 	audit    auditlog.Recorder
+	notifier notify.Notifier
 }
 
 // settle applies a payment or refund that C2 reports.
@@ -71,7 +73,7 @@ func (h paymentCallbackHandler) settle(w http.ResponseWriter, r *http.Request) {
 		FullyRefunded: claims.Status == c2.InvoiceRefunded,
 	}
 
-	pay, err := h.payments.ApplySettlement(r.Context(), st)
+	pay, applied, err := h.payments.ApplySettlement(r.Context(), st)
 	if errors.Is(err, payment.ErrUnknownBill) {
 		// A verified token naming a bill we never raised. Acknowledged so C2
 		// stops redelivering, but recorded: it means our references and C2's
@@ -91,6 +93,18 @@ func (h paymentCallbackHandler) settle(w http.ResponseWriter, r *http.Request) {
 		event = "payment.refunded"
 	}
 	h.recordAudit(r, event, pay.BookingID, describeSettlement(st))
+
+	// Receipt only on a payment we actually applied. C2 re-delivers callbacks —
+	// its own docs call delivery best-effort — so without the `applied` check a
+	// resident would get a fresh receipt every time it retried. A refund is a
+	// different message and is not one.
+	//
+	// Best-effort by construction: the notifier swallows its own failures, and
+	// the settlement is committed either way. The booking is paid whether or not
+	// the message lands.
+	if applied && !st.Refund && h.notifier != nil {
+		h.notifier.PaymentReceipt(pay.BookingID, st.AmountCents, st.GatewayRef)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

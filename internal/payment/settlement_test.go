@@ -47,7 +47,7 @@ func TestSettlementMarksPendingPaymentPaid(t *testing.T) {
 	svc, db := hostedService(t, p)
 	b := paidBooking(t, svc, db, domain.PayPending)
 
-	if _, err := svc.ApplySettlement(context.Background(), Settlement{
+	if _, _, err := svc.ApplySettlement(context.Background(), Settlement{
 		Ref: BillRef(b.ID), AmountCents: 15000, GatewayRef: "ch_3P",
 	}); err != nil {
 		t.Fatal(err)
@@ -67,7 +67,7 @@ func TestSettlementIsIdempotentOnGatewayReference(t *testing.T) {
 
 	st := Settlement{Ref: BillRef(b.ID), AmountCents: 15000, GatewayRef: "ch_3P"}
 	for i := 0; i < 3; i++ {
-		if _, err := svc.ApplySettlement(context.Background(), st); err != nil {
+		if _, _, err := svc.ApplySettlement(context.Background(), st); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -85,7 +85,7 @@ func TestPartialRefundLeavesPaymentPaid(t *testing.T) {
 	svc, db := hostedService(t, p)
 	b := paidBooking(t, svc, db, domain.PayPaid)
 
-	if _, err := svc.ApplySettlement(context.Background(), Settlement{
+	if _, _, err := svc.ApplySettlement(context.Background(), Settlement{
 		Ref: BillRef(b.ID), Refund: true, AmountCents: 7500, GatewayRef: "re_1",
 		FullyRefunded: false,
 	}); err != nil {
@@ -104,7 +104,7 @@ func TestFullRefundMarksPaymentRefunded(t *testing.T) {
 	svc, db := hostedService(t, p)
 	b := paidBooking(t, svc, db, domain.PayPaid)
 
-	if _, err := svc.ApplySettlement(context.Background(), Settlement{
+	if _, _, err := svc.ApplySettlement(context.Background(), Settlement{
 		Ref: BillRef(b.ID), Refund: true, AmountCents: 15000, GatewayRef: "re_1",
 		FullyRefunded: true,
 	}); err != nil {
@@ -129,7 +129,7 @@ func TestRefundSettlementClosesTheObligation(t *testing.T) {
 		t.Fatalf("expected an open obligation, got %d", len(obs))
 	}
 
-	if _, err := svc.ApplySettlement(context.Background(), Settlement{
+	if _, _, err := svc.ApplySettlement(context.Background(), Settlement{
 		Ref: BillRef(b.ID), Refund: true, AmountCents: 7500, GatewayRef: "re_9",
 	}); err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func TestSettlementRejectsForeignReference(t *testing.T) {
 	// here is caught by the lookup that follows.
 	refs := []string{b.ID, "SOMEONE-ELSE-123", "", "FB-", "FB-not-a-real-id"}
 	for _, ref := range refs {
-		if _, err := svc.ApplySettlement(context.Background(), Settlement{Ref: ref, GatewayRef: "x"}); !errors.Is(err, ErrUnknownBill) {
+		if _, _, err := svc.ApplySettlement(context.Background(), Settlement{Ref: ref, GatewayRef: "x"}); !errors.Is(err, ErrUnknownBill) {
 			t.Fatalf("ref %q: got %v, want ErrUnknownBill", ref, err)
 		}
 	}
@@ -174,5 +174,45 @@ func TestBookingIDFromRefRequiresOurPrefix(t *testing.T) {
 		if _, ok := BookingIDFromRef(ref); ok {
 			t.Fatalf("%q should not be accepted as one of our references", ref)
 		}
+	}
+}
+
+// The receipt that reaches the citizen hangs off this bool, so it is worth its
+// own test: C2 re-delivers callbacks as a matter of course, and a caller that
+// could not tell a redelivery from a first application would send a fresh
+// receipt every time (FAC-50).
+func TestApplySettlementReportsWhetherItApplied(t *testing.T) {
+	p := &fakeHosted{}
+	svc, db := hostedService(t, p)
+	b := paidBooking(t, svc, db, domain.PayPending)
+	st := Settlement{Ref: BillRef(b.ID), AmountCents: 15000, GatewayRef: "ch_3P"}
+
+	_, applied, err := svc.ApplySettlement(context.Background(), st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !applied {
+		t.Fatal("first application reported applied=false")
+	}
+
+	// Same gateway reference again — exactly what a C2 redelivery looks like.
+	_, applied, err = svc.ApplySettlement(context.Background(), st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if applied {
+		t.Error("redelivery reported applied=true; the citizen would be sent a second receipt")
+	}
+
+	// A refund is a different event on the same booking: it applies, but it is
+	// not a payment and must not produce a payment receipt.
+	_, applied, err = svc.ApplySettlement(context.Background(), Settlement{
+		Ref: BillRef(b.ID), AmountCents: 5000, GatewayRef: "re_1A", Refund: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !applied {
+		t.Error("first refund reported applied=false")
 	}
 }
