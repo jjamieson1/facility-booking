@@ -110,12 +110,14 @@ func New(d Deps) http.Handler {
 		// JWT, not a session cookie — so it sits with the public routes).
 		api.Get("/citizens/{sub}/status", sc.status)
 
-		// Booker actions on their own booking. RequireSession, so a guest who
-		// booked without an account can still complete and manage that booking —
-		// each handler's ownership check is what protects the data.
+		// Booker actions on their own booking. RequireSession rather than
+		// RequireAccount: each handler's ownership check is what protects the
+		// data, and this group is the one a guest session could legitimately
+		// use if the guest scaffolding (domain.RoleGuest) were ever wired up.
+		// Nothing creates a guest today — OpenSession is reached only from the
+		// OIDC callback — so the distinction is dormant, not dead.
 		api.Group(func(pr chi.Router) {
 			pr.Use(auth.RequireSession)
-			pr.Post("/bookings", bk.create)
 			pr.Put("/me/language", langh.setLanguage)
 			pr.Get("/bookings/mine", bk.mine)
 			pr.Get("/bookings/{id}", bk.get)
@@ -147,6 +149,17 @@ func New(d Deps) http.Handler {
 			// availability and pricing, and is easier to reason about once the
 			// booker has a durable identity.
 			ar.Post("/bookings/{id}/reschedule", bk.reschedule)
+			// Creating a booking needs a durable identity, because a chargeable
+			// booking is billed through C2 and C2 can only bill a citizen it
+			// knows. A guest subject is rejected by payerSubject before any call
+			// is made, so a guest booking a paid facility would hold a slot it
+			// could never pay for and could only lose to the sweeper.
+			//
+			// This was RequireSession, which admitted a guest. No guest exists
+			// today, so nothing was wrong in practice — but the property held by
+			// accident, because nothing creates guests, rather than because this
+			// route refused them. Now it refuses them.
+			ar.Post("/bookings", bk.create)
 			// A waitlist is a standing relationship the city contacts later, which
 			// presumes an account to contact.
 			ar.Post("/facilities/{id}/waitlist", bk.joinWaitlist)
