@@ -128,6 +128,9 @@ func New(d Deps) http.Handler {
 			pr.Get("/bookings/{id}/conditions", bk.conditions)
 			pr.Post("/bookings/{id}/conditions/accept", bk.acceptConditions)
 			pr.Post("/bookings/{id}/pay", bk.pay)
+			// How the booker will pay, before any bill exists. Session-gated
+			// rather than public: only somebody with a booking needs it.
+			pr.Get("/payments/method", psh.method)
 			// A facility requiring a waiver cannot be confirmed without one, so a
 			// guest must be able to upload and retrieve their own.
 			pr.Post("/bookings/{id}/waiver", wv.upload)

@@ -30,6 +30,31 @@ func (h paymentSettingsHandler) obligations(w http.ResponseWriter, r *http.Reque
 	writeJSON(w, http.StatusOK, out)
 }
 
+// method tells the booker how they will pay, BEFORE any bill exists.
+//
+// The booking page used to decide that from the payUrl on the payment the
+// server had already created, which is correct only once there is one. On a
+// booking nobody has paid yet there is no payment row at all, so a hosted
+// gateway still rendered the simulated card form — the resident typed a card
+// number into a form whose value the server then discarded.
+//
+// Deliberately narrow: whether checkout is hosted, and the module's display
+// name. No configuration and no credentials. Session-gated because only
+// somebody with a booking needs it, guests included — they can be billed.
+func (h paymentSettingsHandler) method(w http.ResponseWriter, r *http.Request) {
+	set, err := h.svc.Get(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "could not load payment settings")
+		return
+	}
+	out := map[string]any{"hostedCheckout": false, "name": ""}
+	if m, ok := payment.ModuleFor(set.Effective); ok {
+		out["hostedCheckout"] = m.HostedCheckout
+		out["name"] = m.Name
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 // get returns the available payment modules plus the current selection, so the
 // admin form renders from the registry rather than a hardcoded list.
 func (h paymentSettingsHandler) get(w http.ResponseWriter, r *http.Request) {

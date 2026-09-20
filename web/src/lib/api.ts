@@ -298,6 +298,13 @@ export type Period = "month" | "quarter" | "year";
 
 export interface FacilityCount { facilityName: string; bookings: number }
 export interface SpaceRevenue { facilityName: string; revenueCents: number; utilizationPct: number }
+export interface PaymentMethod {
+  // true when the gateway runs its own checkout (C2's broker), so there is no
+  // card to take here.
+  hostedCheckout: boolean;
+  name: string;
+}
+
 export interface TrendPoint { label: string; utilizationPct: number }
 
 export interface Dashboard {
@@ -574,6 +581,9 @@ export const api = {
     get<CancellationPolicy>(`/facilities/${facilityId}/cancellation-policy`),
   reschedule: (id: string, w: { start: string; end: string }) => post<Booking>(`/bookings/${id}/reschedule`, w),
   pay: (id: string, card: string) => post<Payment>(`/bookings/${id}/pay`, { card }),
+  // How the booker will pay, before any bill exists. The payment on the booking
+  // only tells us this once one has been raised.
+  paymentMethod: () => get<PaymentMethod>("/payments/method"),
   inviteUrl: (id: string) => `${BASE}/api/bookings/${id}/invite.ics`,
   waiverUrl: (id: string) => `${BASE}/api/bookings/${id}/waiver`,
   waiverTemplateUrl: () => `${BASE}/api/waiver-template.pdf`,
