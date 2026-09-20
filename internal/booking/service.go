@@ -93,11 +93,24 @@ func (s *Service) requestOne(ctx context.Context, userID, facilityID string, sta
 			return ErrNotBookable
 		}
 
-		// A facility needing staff approval or a waiver holds the booking as
-		// pending until that gate is met (§4.11 waiver-before-confirmation).
+		// Where the booking starts depends on what still has to happen to it.
+		//
+		// A facility needing staff approval or a waiver holds it as pending
+		// until that gate is met (§4.11 waiver-before-confirmation) — and
+		// deliberately raises no bill yet, so a denial never takes money this
+		// app cannot give back: C2 accepts refund instructions from an operator,
+		// not from us (FAC-52).
+		//
+		// Otherwise a chargeable booking holds its slot awaiting payment, and a
+		// free one is simply confirmed: there is nothing to collect, and a zero
+		// invoice is a dead end for the resident even if C2 would accept one.
+		fee := fac.FeeFor(pricing.Resident)
 		status := domain.StatusConfirmed
-		if fac.RequiresApproval || fac.RequiresWaiver {
+		switch {
+		case fac.RequiresApproval || fac.RequiresWaiver:
 			status = domain.StatusPending
+		case fee > 0:
+			status = domain.StatusAwaitingPayment
 		}
 		// Price from the entitlements resolved before this transaction opened —
 		// never from a fresh lookup here, so the amount quoted is the amount
@@ -105,7 +118,7 @@ func (s *Service) requestOne(ctx context.Context, userID, facilityID string, sta
 		b := domain.Booking{
 			FacilityID: facilityID, UserID: userID, StartsAt: start, EndsAt: end,
 			Status: status, Purpose: purpose, Attendance: attendance,
-			FeeCents:     fac.FeeFor(pricing.Resident),
+			FeeCents:     fee,
 			Resident:     pricing.Resident,
 			RecurrenceID: recurrenceID,
 		}
@@ -302,9 +315,22 @@ func (s *Service) RequestRecurring(ctx context.Context, userID, facilityID strin
 	return res, nil
 }
 
-// Approve confirms a pending booking (staff action).
+// Approve accepts a pending booking (staff action).
+//
+// A chargeable booking is not confirmed here — it moves to awaiting payment and
+// keeps holding its slot while the resident pays (FAC-52). Charging only after
+// staff have said yes is what keeps a denial free of a refund this app cannot
+// issue. A free booking has nothing to collect and is confirmed outright.
 func (s *Service) Approve(ctx context.Context, actorID, bookingID string) (*domain.Booking, error) {
-	return s.transition(ctx, actorID, bookingID, domain.StatusPending, domain.StatusConfirmed, "booking.approve")
+	var b domain.Booking
+	if err := s.db.WithContext(ctx).First(&b, "id = ?", bookingID).Error; err != nil {
+		return nil, ErrNotFound
+	}
+	to := domain.StatusConfirmed
+	if b.FeeCents > 0 {
+		to = domain.StatusAwaitingPayment
+	}
+	return s.transition(ctx, actorID, bookingID, domain.StatusPending, to, "booking.approve")
 }
 
 // Deny rejects a pending booking (staff action).

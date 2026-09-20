@@ -367,3 +367,68 @@ func TestReapprovingReplacesTheConditionSet(t *testing.T) {
 		t.Fatalf("terms = %q", got.Condition.Terms)
 	}
 }
+
+// Money landing is what turns a held slot into a booking (FAC-52), and it goes
+// through the same gate as staff conditions — CLAUDE.md's rule is that
+// WhatIsOutstanding is the ONLY gate, so a second place deciding this is a
+// second place that can disagree.
+func TestPaymentConfirmsAHeldBooking(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, false, 15000)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Status != domain.StatusAwaitingPayment {
+		t.Fatalf("status = %q, want awaiting_payment", b.Status)
+	}
+
+	// Unpaid: the gate holds. A bill that exists but is not settled is exactly
+	// the state a resident abandons mid-checkout.
+	if err := db.Create(&domain.Payment{
+		BookingID: b.ID, AmountCents: 15000, Status: domain.PayPending, Provider: "c2",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, confirmed, err := svc.ConfirmIfSatisfied(context.Background(), b.ID, false); err != nil || confirmed {
+		t.Fatalf("confirmed=%v err=%v — an unpaid hold must not confirm", confirmed, err)
+	}
+
+	// Paid: it confirms.
+	if err := db.Model(&domain.Payment{}).Where("booking_id = ?", b.ID).
+		Update("status", domain.PayPaid).Error; err != nil {
+		t.Fatal(err)
+	}
+	after, confirmed, err := svc.ConfirmIfSatisfied(context.Background(), b.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !confirmed || after.Status != domain.StatusConfirmed {
+		t.Errorf("confirmed=%v status=%q, want a confirmed booking once the money landed", confirmed, after.Status)
+	}
+}
+
+// A part-payment is not a payment. The gate compares what is owed against what
+// was actually settled, so an underpaid hold stays held.
+func TestPartPaymentDoesNotConfirmAHeldBooking(t *testing.T) {
+	db := newDB(t)
+	svc := NewService(db, nil)
+	fid, uid := paidFacility(t, db, false, 15000)
+	start, end := window()
+
+	b, err := svc.Request(context.Background(), uid, fid, start, end, "meeting", 10, Pricing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Create(&domain.Payment{
+		BookingID: b.ID, AmountCents: 5000, Status: domain.PayPaid, Provider: "c2",
+	}).Error; err != nil {
+		t.Fatal(err)
+	}
+	if _, confirmed, err := svc.ConfirmIfSatisfied(context.Background(), b.ID, false); err != nil || confirmed {
+		t.Fatalf("confirmed=%v err=%v — $50 against a $150 fee must not confirm", confirmed, err)
+	}
+}

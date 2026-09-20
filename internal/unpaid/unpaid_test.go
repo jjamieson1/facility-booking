@@ -162,3 +162,61 @@ func TestSkipsAlreadyCancelledBookings(t *testing.T) {
 		t.Fatalf("%d audit rows, want 1", n)
 	}
 }
+
+// The hole FAC-52 opened, and the reason this test exists.
+//
+// The invoice is raised AFTER the booking transaction commits — it has to be,
+// or a C2 callout would hold the double-booking row locks for the provider's
+// latency. So a failure there leaves a booking awaiting payment with no payment
+// row at all. The sweeper's original arm joins to payments and would never see
+// it: the slot would be held forever, and nothing in the logs would say why.
+func TestReleasesAHoldThatNeverGotABill(t *testing.T) {
+	s, db, freed := newSweeper(t)
+	now := time.Now()
+
+	f := domain.Facility{Name: "Hall", Capacity: 10}
+	if err := db.Create(&f).Error; err != nil {
+		t.Fatal(err)
+	}
+	u := domain.User{Subject: "s-" + f.ID, Role: domain.RoleResident}
+	if err := db.Create(&u).Error; err != nil {
+		t.Fatal(err)
+	}
+	b := domain.Booking{
+		FacilityID: f.ID, UserID: u.ID, Status: domain.StatusAwaitingPayment,
+		FeeCents: 15000, StartsAt: now.Add(72 * time.Hour), EndsAt: now.Add(73 * time.Hour),
+	}
+	if err := db.Create(&b).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Age it past the window. No payment row is created — that is the point.
+	if err := db.Model(&domain.Booking{}).Where("id = ?", b.ID).
+		UpdateColumn("created_at", now.Add(-25*time.Hour)).Error; err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Scan(context.Background(), now); err != nil {
+		t.Fatal(err)
+	}
+	if got := statusOf(t, db, b.ID); got != domain.StatusCancelled {
+		t.Fatalf("status = %q, want cancelled — a hold with no bill would otherwise keep its slot forever", got)
+	}
+	if len(*freed) != 1 {
+		t.Errorf("waitlist not notified: %d callbacks", len(*freed))
+	}
+}
+
+// A hold that DID get a bill and is still inside its window keeps the slot —
+// the second arm must not release a booking the first arm is still waiting on.
+func TestKeepsAHoldWithAFreshBill(t *testing.T) {
+	s, db, _ := newSweeper(t)
+	now := time.Now()
+	b := billed(t, db, domain.StatusAwaitingPayment, domain.PayPending, now.Add(-1*time.Hour), now.Add(72*time.Hour))
+
+	if err := s.Scan(context.Background(), now); err != nil {
+		t.Fatal(err)
+	}
+	if got := statusOf(t, db, b.ID); got != domain.StatusAwaitingPayment {
+		t.Fatalf("status = %q, want awaiting_payment", got)
+	}
+}

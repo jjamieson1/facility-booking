@@ -26,8 +26,11 @@ type Sweeper struct {
 	onFreed  func(domain.Booking) // notify the waitlist; may be nil
 }
 
-// NewSweeper builds the sweeper. hold is how long a billed-but-unpaid booking
-// keeps its slot (24h by product decision); every is the scan interval.
+// NewSweeper builds the sweeper. hold is how long an unpaid booking keeps its
+// slot (15 minutes by product decision — a slot is not booked until it is paid
+// for, so a hold that is not going to be paid should recirculate quickly);
+// every is the scan interval, which must be well under hold or a hold outlives
+// its window by up to one full scan.
 //
 // onFreed is called after a slot is released so the waitlist can be told, which
 // is the whole reason releasing early is worth doing.
@@ -59,13 +62,30 @@ func (s *Sweeper) Run(ctx context.Context) {
 // for money.
 func (s *Sweeper) Scan(ctx context.Context, now time.Time) error {
 	cutoff := now.Add(-s.hold)
+	held := []domain.BookingStatus{
+		domain.StatusAwaitingPayment, domain.StatusPending, domain.StatusConfirmed,
+	}
 	var due []domain.Booking
+	// Two arms, because a hold can be stranded in two different ways.
+	//
+	// The first is the ordinary one: a bill was raised and went unpaid, aged
+	// from when the resident was first asked for money.
+	//
+	// The second is the hole FAC-52 opened. The invoice is raised AFTER the
+	// booking transaction commits — it has to be, or a C2 callout would hold the
+	// double-booking row locks for the provider's latency — so a failure there
+	// leaves a booking awaiting payment with no payment row at all. The first
+	// arm joins to payments and would never see it, and the slot would be held
+	// forever with nothing in the logs to say why. That one is aged from the
+	// booking itself, which is the only clock it has.
 	err := s.db.WithContext(ctx).Preload("Facility").
 		Where(`status IN (?) AND id IN (
 			SELECT booking_id FROM payments
 			WHERE status = ? AND created_at <= ? AND deleted_at IS NULL)`,
-			[]domain.BookingStatus{domain.StatusPending, domain.StatusConfirmed},
-			domain.PayPending, cutoff).
+			held, domain.PayPending, cutoff).
+		Or(`status = ? AND created_at <= ? AND id NOT IN (
+			SELECT booking_id FROM payments WHERE deleted_at IS NULL)`,
+			domain.StatusAwaitingPayment, cutoff).
 		Find(&due).Error
 	if err != nil {
 		return err

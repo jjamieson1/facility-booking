@@ -82,6 +82,7 @@ const en = {
     notFound: "Booking not found.",
     when: "When", purpose: "Purpose", attendance: "Attendance", fee: "Fee",
     pendingMsg: "This booking is awaiting staff approval. You'll be notified once it's reviewed.",
+    awaitingPaymentMsg: "We are holding this slot while you pay. If payment is not completed it is released and someone else can book it.",
     confirmedMsg: "Confirmed — add it to your calendar.",
     downloadInvite: "Download invite (.ics)",
     changeTime: "Change time", cancelChange: "Cancel change",
@@ -180,7 +181,7 @@ const en = {
     view: "View", week: "Week", month: "Month", prevWeek: "Previous week", nextWeek: "Next week", prevMonth: "Previous month", nextMonth: "Next month",
     footer: "Opening hours {{open}} – {{close}} · {{buffer}}-min cleanup buffer between bookings · min {{min}} hrs. This view is public — no account needed.",
   },
-  status: { pending: "pending", conditional: "conditions to meet", confirmed: "confirmed", denied: "denied", cancelled: "cancelled" },
+  status: { pending: "pending", awaiting_payment: "awaiting payment", conditional: "conditions to meet", confirmed: "confirmed", denied: "denied", cancelled: "cancelled" },
   audit: {
     title: "Audit log", subtitle: "Staff actions, recorded in the tamper-evident audit service.",
     when: "When", action: "Action", actor: "Actor", target: "Target",
@@ -340,6 +341,7 @@ const fr = {
     notFound: "Réservation introuvable.",
     when: "Quand", purpose: "Objet", attendance: "Participants", fee: "Frais",
     pendingMsg: "Cette réservation attend l'approbation du personnel. Vous serez avisé après examen.",
+    awaitingPaymentMsg: "Nous réservons ce créneau pendant votre paiement. Sans paiement, il est libéré et quelqu'un d'autre peut le réserver.",
     confirmedMsg: "Confirmée — ajoutez-la à votre calendrier.",
     downloadInvite: "Télécharger l'invitation (.ics)",
     changeTime: "Changer l'heure", cancelChange: "Annuler le changement",
@@ -438,7 +440,7 @@ const fr = {
     view: "Vue", week: "Semaine", month: "Mois", prevWeek: "Semaine précédente", nextWeek: "Semaine suivante", prevMonth: "Mois précédent", nextMonth: "Mois suivant",
     footer: "Heures d'ouverture {{open}} – {{close}} · tampon de nettoyage de {{buffer}} min entre les réservations · min {{min}} h. Cette vue est publique — aucun compte requis.",
   },
-  status: { pending: "en attente", conditional: "conditions à remplir", confirmed: "confirmée", denied: "refusée", cancelled: "annulée" },
+  status: { pending: "en attente", awaiting_payment: "paiement en attente", conditional: "conditions à remplir", confirmed: "confirmée", denied: "refusée", cancelled: "annulée" },
   audit: {
     title: "Journal d'audit", subtitle: "Actions du personnel, enregistrées dans le service d'audit inviolable.",
     when: "Quand", action: "Action", actor: "Auteur", target: "Cible",

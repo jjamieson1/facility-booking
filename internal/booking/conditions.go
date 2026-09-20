@@ -186,20 +186,28 @@ type Outstanding struct {
 // business reaching around them.
 func WhatIsOutstanding(b domain.Booking, pay *domain.Payment, hasDocument bool) Outstanding {
 	var out Outstanding
-	if b.Condition == nil {
-		out.AllSatisfied = true
-		return out
-	}
-	out.AcceptTerms = b.Condition.Terms != "" && !b.Condition.Accepted()
 
 	paid := 0
 	if pay != nil && pay.Status == domain.PayPaid {
 		paid = pay.AmountCents
 	}
-	if owed := b.FeeCents - paid; owed > 0 {
-		out.PayCents = owed
+	// Money is owed by a booking that carries conditions, and — since FAC-52 —
+	// by one holding its slot awaiting payment, which has no conditions at all.
+	// Both are computed here rather than at their call sites, because this
+	// function is meant to be the only gate: a second place deciding whether a
+	// booking may confirm is a second place that can disagree.
+	if b.Status == domain.StatusAwaitingPayment || b.Condition != nil {
+		if owed := b.FeeCents - paid; owed > 0 {
+			out.PayCents = owed
+		}
 	}
 
+	if b.Condition == nil {
+		out.AllSatisfied = out.PayCents == 0
+		return out
+	}
+
+	out.AcceptTerms = b.Condition.Terms != "" && !b.Condition.Accepted()
 	if b.Condition.RequiresDocument() && !hasDocument {
 		out.UploadLabel = b.Condition.DocumentLabel
 	}
@@ -221,20 +229,29 @@ func (s *Service) ConfirmIfSatisfied(ctx context.Context, bookingID string, hasD
 		if err := tx.Preload("Condition").Preload("Payment").First(&b, "id = ?", bookingID).Error; err != nil {
 			return ErrNotFound
 		}
-		if b.Status != domain.StatusConditional {
+		// Conditional bookings confirm when staff's terms are met; awaiting-payment
+		// bookings confirm when the money lands. Anything else is already
+		// decided and is left alone.
+		if b.Status != domain.StatusConditional && b.Status != domain.StatusAwaitingPayment {
 			return nil // nothing to do; not an error
 		}
 		if !WhatIsOutstanding(b, b.Payment, hasDocument).AllSatisfied {
 			return nil
 		}
+		was := b.Status
 		if err := tx.Model(&b).Update("status", domain.StatusConfirmed).Error; err != nil {
 			return err
 		}
 		b.Status = domain.StatusConfirmed
 		confirmed = true
-		// No actor: the resident satisfied the last condition, but the decision
-		// to confirm is the system applying the terms staff already set.
-		return writeAudit(tx, "", "booking.conditions.satisfied", b.ID)
+		// No actor: the resident satisfied the last requirement, but the decision
+		// to confirm is the system applying terms already set — by staff for a
+		// conditional booking, by the fee for one awaiting payment.
+		action := "booking.conditions.satisfied"
+		if was == domain.StatusAwaitingPayment {
+			action = "booking.paid.confirmed"
+		}
+		return writeAudit(tx, "", action, b.ID)
 	})
 	if err != nil {
 		return nil, false, err

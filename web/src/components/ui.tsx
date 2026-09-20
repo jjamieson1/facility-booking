@@ -76,7 +76,11 @@ export function formatTime(iso: string): string {
 }
 
 const statusTone: Record<string, "green" | "amber" | "red" | "slate"> = {
-  confirmed: "green", pending: "amber", conditional: "amber", denied: "red", cancelled: "slate",
+  confirmed: "green", pending: "amber", conditional: "amber",
+  // A hold is unfinished business for the resident, like a condition to meet —
+  // not a confirmed booking, and not a failure either.
+  awaiting_payment: "amber",
+  denied: "red", cancelled: "slate",
 };
 
 export function StatusBadge({ status }: { status: string }) {
