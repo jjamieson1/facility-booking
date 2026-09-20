@@ -198,8 +198,9 @@ does not roll back a booking — the booking is the record, the message is a cou
 swallows its error into the log fallback.
 
 **Two consequences worth knowing.** C2 carries **no attachments**, so the `.ics` invite travels as a
-*link* to `/api/bookings/{id}/invite.ics` rather than a file. And **guests have no C2 identity**
-(`guest:<uuid>` subjects, FAC-24), so they are skipped — expected, not an error.
+*link* to `/api/bookings/{id}/invite.ics` rather than a file. And a **guest would have no C2
+identity** (`guest:<uuid>` subjects), so the notifier skips one — expected, not an error. That path
+is dormant: see "Guest booking is scaffolding" below.
 
 **Language:** `User.Language` ("en"/"fr") is persisted via `PUT /api/me/language`, which the SPA's
 header toggle calls for signed-in users. The browser toggle alone is not enough: notifications are
@@ -293,8 +294,9 @@ and a partial refund leaves the status unchanged so a status check would re-appl
 partial refund keeps `Payment.Status` at `paid`, matching the in-app refund path — money is still
 held against that booking.
 
-**Guests cannot be billed here.** `guest:<uuid>` subjects (FAC-24) mean nothing to C2, so
-`payerSubject` rejects them before the call rather than letting C2 404.
+**Guests cannot be billed here.** A `guest:<uuid>` subject would mean nothing to C2, so
+`payerSubject` rejects one before the call rather than letting C2 404. Dormant but deliberately
+kept — see "Guest booking is scaffolding" below.
 
 **Unpaid bookings are released after 24h** by `internal/unpaid`'s sweeper (alongside `reminders`),
 which frees the slot and opens the waitlist. Without it one unpaid request holds a popular slot
@@ -456,11 +458,29 @@ There is deliberately **no "any authenticated user" middleware** — that is wha
 guest session the whole API. Every non-public route picks one of three, and **when it isn't obvious,
 pick the stricter one**:
 
-- `auth.RequireSession` — any session, *including a guest* who booked without an account. For a
-  booker acting on their own booking, where the handler's ownership check is the real protection.
+- `auth.RequireSession` — any session, *including a guest* if one ever existed. For a booker acting
+  on their own booking, where the handler's ownership check is the real protection.
 - `auth.RequireAccount` — a real account only; a guest gets 403. For anything tied to a durable
   identity rather than one booking (residency/entitlements, waitlist).
 - `auth.RequireRole(…)` — staff/admin. Admin implicitly satisfies staff; a guest satisfies nothing.
+
+### Guest booking is scaffolding, not a feature
+
+`domain.RoleGuest`, `User.IsGuest()`, `RequireAccount`'s 403-for-guests, `payerSubject`'s
+`guest:` rejection and the notifier's guest skip all exist — but **nothing creates a guest**.
+`auth.Service.OpenSession` is reached from exactly one place, the OIDC callback, so every session
+here comes from a completed C2 login, and `ValidRole` deliberately excludes `RoleGuest` from the
+roles staff may assign. The SPA has no guest path at all.
+
+This file used to describe guest booking as shipped (FAC-24). It was read as fact while planning
+payment-first booking and made "guests cannot be billed" look like a live constraint rather than a
+dormant one, which is the cost of a stale claim in a document people trust.
+
+The guards stay. They cost nothing, they are the correct behaviour if the scaffolding is ever
+wired up, and **`POST /api/bookings` now requires an account** rather than merely a session — a
+chargeable booking is billed through C2, and C2 can only bill a citizen it knows, so a guest would
+hold a slot it could never pay for. That property used to hold by accident, because no guest
+exists; now the route refuses one.
 
 `internal/httpapi/route_access_test.go` classifies **every** registered route and fails the build if
 a new one appears unclassified, plus asserts the behaviour (guest blocked from account routes,
